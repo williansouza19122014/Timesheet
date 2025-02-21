@@ -4,13 +4,20 @@ import { Settings as SettingsIcon, Server, Database, Key } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const Settings = () => {
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error' | 'not-configured'>('checking');
 
   useEffect(() => {
     checkConnection();
   }, []);
 
   const checkConnection = async () => {
+    // Check if Supabase is configured
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      console.log('Supabase not configured');
+      setConnectionStatus('not-configured');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('test_connection')
@@ -44,12 +51,18 @@ const Settings = () => {
                 ? 'bg-success/10 text-success' 
                 : status === 'Checking...'
                 ? 'bg-accent/10 text-accent'
+                : status === 'Not Configured'
+                ? 'bg-accent/10 text-accent'
                 : 'bg-destructive/10 text-destructive'
             }`}>
               {status}
             </span>
           </div>
-          <p className="text-sm text-secondary">{description}</p>
+          <p className="text-sm text-secondary">
+            {connectionStatus === 'not-configured' && title === 'Supabase Connection'
+              ? "Please connect Supabase using the Lovable interface"
+              : description}
+          </p>
         </div>
       </div>
     </div>
@@ -68,6 +81,8 @@ const Settings = () => {
               ? 'Checking...' 
               : connectionStatus === 'connected'
               ? 'Connected'
+              : connectionStatus === 'not-configured'
+              ? 'Not Configured'
               : 'Error'
           }
           description="Status of connection to Supabase backend services"
@@ -76,21 +91,21 @@ const Settings = () => {
         <SystemCard
           icon={Database}
           title="Database Status"
-          status={connectionStatus === 'connected' ? 'Connected' : 'Checking...'}
+          status={connectionStatus === 'connected' ? 'Connected' : 'Not Available'}
           description="PostgreSQL database connection status"
         />
 
         <SystemCard
           icon={Key}
           title="Authentication"
-          status={connectionStatus === 'connected' ? 'Active' : 'Checking...'}
+          status={connectionStatus === 'connected' ? 'Active' : 'Not Available'}
           description="User authentication and authorization system"
         />
 
         <SystemCard
           icon={SettingsIcon}
           title="System Configuration"
-          status="Available"
+          status={connectionStatus === 'connected' ? 'Available' : 'Limited'}
           description="Global system settings and preferences"
         />
       </div>

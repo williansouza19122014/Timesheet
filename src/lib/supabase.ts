@@ -1,9 +1,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize the Supabase client
-// These will be populated once Supabase is connected via the Lovable interface
+// Initialize the Supabase client with default or environment values
 export const supabase = createClient(
-  'YOUR_SUPABASE_URL',
-  'YOUR_SUPABASE_ANON_KEY'
+  import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'dummy-key'
 );
