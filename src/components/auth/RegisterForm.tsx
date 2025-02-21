@@ -1,39 +1,45 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Lock, Loader2, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
-const LoginForm = () => {
+const RegisterForm = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name,
+          },
+        },
       });
 
       if (error) throw error;
 
       toast({
-        title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
+        title: "Conta criada com sucesso!",
+        description: "Você já pode fazer login.",
       });
 
-      navigate("/");
+      navigate("/login");
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Erro ao fazer login",
+        title: "Erro ao criar conta",
         description: error.message,
       });
     } finally {
@@ -44,13 +50,31 @@ const LoginForm = () => {
   return (
     <div className="w-full max-w-md mx-auto space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold">Bem-vindo de volta</h2>
+        <h2 className="text-2xl font-bold">Criar uma conta</h2>
         <p className="text-muted-foreground">
-          Faça login para acessar sua conta
+          Preencha os dados abaixo para se cadastrar
         </p>
       </div>
 
-      <form onSubmit={handleLogin} className="space-y-4">
+      <form onSubmit={handleRegister} className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="name" className="text-sm font-medium">
+            Nome
+          </label>
+          <div className="relative">
+            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              placeholder="Seu nome"
+              required
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium">
             Email
@@ -83,6 +107,7 @@ const LoginForm = () => {
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               placeholder="••••••••"
               required
+              minLength={6}
             />
           </div>
         </div>
@@ -95,19 +120,12 @@ const LoginForm = () => {
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            "Entrar"
+            "Criar conta"
           )}
         </button>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Não tem uma conta?{" "}
-          <Link to="/register" className="text-accent hover:underline">
-            Registre-se
-          </Link>
-        </p>
       </form>
     </div>
   );
 };
 
-export default LoginForm;
+export default RegisterForm;
