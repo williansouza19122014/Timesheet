@@ -1,11 +1,30 @@
 
-import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { Clock, ChartBar, User, Users, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Clock, ChartBar, User, Users, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent"></div>
+      </div>
+    );
+  }
 
   const navigation = [
     { name: "Time Tracking", href: "/", icon: Clock },
@@ -15,17 +34,33 @@ const Layout = () => {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        description: "Logout realizado com sucesso",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao fazer logout",
+        description: "Por favor, tente novamente",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-40 h-screen bg-white border-r transition-all duration-300 ${
           isSidebarOpen ? "w-64" : "w-20"
         }`}
       >
-        <div className="h-full px-3 py-4">
+        <div className="h-full px-3 py-4 flex flex-col">
           <div className="mb-10 flex items-center justify-between">
-            <span className={`font-semibold text-xl ${!isSidebarOpen && "hidden"}`}>
+            <span
+              className={`font-semibold text-xl ${!isSidebarOpen && "hidden"}`}
+            >
               TimeTrack
             </span>
             <button
@@ -47,8 +82,8 @@ const Layout = () => {
               </svg>
             </button>
           </div>
-          
-          <nav className="space-y-2">
+
+          <nav className="space-y-2 flex-1">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
@@ -69,10 +104,17 @@ const Layout = () => {
               );
             })}
           </nav>
+
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth text-destructive hover:bg-destructive/10"
+          >
+            <LogOut className="w-6 h-6" />
+            <span className={!isSidebarOpen ? "hidden" : ""}>Sair</span>
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main
         className={`min-h-screen transition-all duration-300 ${
           isSidebarOpen ? "ml-64" : "ml-20"
