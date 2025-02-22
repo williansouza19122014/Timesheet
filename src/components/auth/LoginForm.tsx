@@ -17,17 +17,19 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Usuário de teste
-    if (email === "teste" && password === "123") {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao TimeSheet",
-      });
-      navigate("/");
-      return;
-    }
-
     try {
+      // Validação dos usuários de teste
+      if ((email === "admin" && password === "123") || 
+          (email === "teste" && password === "123")) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo ao TimeSheet",
+        });
+        navigate("/");
+        return;
+      }
+
+      // Se não for usuário de teste, tenta autenticar via Supabase
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
