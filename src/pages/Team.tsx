@@ -10,19 +10,37 @@ interface User {
   role: "admin" | "user";
 }
 
+interface NewUser {
+  name: string;
+  email: string;
+  password: string;
+  role: "admin" | "user";
+}
+
 const Team = () => {
   const [users, setUsers] = useState<User[]>([
     { id: "1", name: "Administrador", email: "admin", role: "admin" },
     { id: "2", name: "Usuário Teste", email: "teste", role: "user" },
   ]);
   const [showNewUserForm, setShowNewUserForm] = useState(false);
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "user" });
+  const [newUser, setNewUser] = useState<NewUser>({ 
+    name: "", 
+    email: "", 
+    password: "", 
+    role: "user" 
+  });
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
-    setUsers([...users, { id: String(users.length + 1), ...newUser }]);
+    const userToAdd: User = {
+      id: String(users.length + 1),
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role
+    };
+    setUsers([...users, userToAdd]);
     setNewUser({ name: "", email: "", password: "", role: "user" });
     setShowNewUserForm(false);
     toast({
