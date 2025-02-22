@@ -10,6 +10,7 @@ import Reports from "./pages/Reports";
 import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import ApprovalRequests from "./pages/ApprovalRequests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/team" element={<Team />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/approvals" element={<ApprovalRequests />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

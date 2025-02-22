@@ -1,6 +1,8 @@
 
 import { useState } from "react";
 import { Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import RequestTimeCorrection from "@/components/RequestTimeCorrection";
 
 interface TimeEntry {
   entrada1: string;
@@ -22,16 +24,66 @@ const TimeTracking = () => {
   const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [entries, setEntries] = useState<{ [key: string]: TimeEntry }>({});
+  const [lastRecordTime, setLastRecordTime] = useState<Date | null>(null);
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const { toast } = useToast();
   
-  const handleTimeChange = (date: string, field: keyof TimeEntry, value: string) => {
+  const handleRegisterTime = () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Validar intervalo mínimo de 5 minutos
+    if (lastRecordTime && (now.getTime() - lastRecordTime.getTime()) < 5 * 60 * 1000) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "É necessário aguardar 5 minutos entre registros"
+      });
+      return;
+    }
+
+    const currentHour = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    const entry = entries[today] || {
+      entrada1: "", saida1: "",
+      entrada2: "", saida2: "",
+      entrada3: "", saida3: "",
+      totalHoras: "00:00",
+      projetos: []
+    };
+
+    // Determinar qual campo deve ser preenchido
+    let fieldToUpdate = "";
+    if (!entry.entrada1) fieldToUpdate = "entrada1";
+    else if (!entry.saida1) fieldToUpdate = "saida1";
+    else if (!entry.entrada2) fieldToUpdate = "entrada2";
+    else if (!entry.saida2) fieldToUpdate = "saida2";
+    else if (!entry.entrada3) fieldToUpdate = "entrada3";
+    else if (!entry.saida3) fieldToUpdate = "saida3";
+    else {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Todos os registros do dia já foram feitos"
+      });
+      return;
+    }
+
     setEntries(prev => ({
       ...prev,
-      [date]: {
-        ...prev[date],
-        [field]: value,
-        totalHoras: calculateTotalHours(date, field, value)
+      [today]: {
+        ...entry,
+        [fieldToUpdate]: currentHour,
+        totalHoras: calculateTotalHours(today, fieldToUpdate, currentHour)
       }
     }));
+
+    setLastRecordTime(now);
+    
+    toast({
+      title: "Horário registrado",
+      description: `${fieldToUpdate.replace(/\d+/g, ' ')} - ${currentHour}`
+    });
   };
 
   const calculateTotalHours = (date: string, field: string, newValue: string): string => {
@@ -41,12 +93,10 @@ const TimeTracking = () => {
       entrada3: "", saida3: "",
     };
     
-    // Atualiza o valor atual
     const updatedEntry = { ...entry, [field]: newValue };
     
     let totalMinutes = 0;
     
-    // Calcula para cada par de entrada/saída
     const calcPair = (entrada: string, saida: string) => {
       if (entrada && saida) {
         const [entradaHour, entradaMin] = entrada.split(':').map(Number);
@@ -70,11 +120,9 @@ const TimeTracking = () => {
     const today = new Date();
     const days = [];
     
-    // Encontra o domingo desta semana
     const sunday = new Date(today);
     sunday.setDate(today.getDate() - today.getDay());
     
-    // Gera array com os 7 dias da semana
     for (let i = 0; i < 7; i++) {
       const day = new Date(sunday);
       day.setDate(sunday.getDate() + i);
@@ -92,6 +140,21 @@ const TimeTracking = () => {
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold">Registro de Horas</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRegisterTime}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            <Clock className="w-5 h-5" />
+            Registrar Ponto
+          </button>
+          <button
+            onClick={() => setShowCorrectionModal(true)}
+            className="px-4 py-2 border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors"
+          >
+            Solicitar Correção
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -133,48 +196,48 @@ const TimeTracking = () => {
                         <input
                           type="time"
                           value={entry.entrada1}
-                          onChange={(e) => handleTimeChange(dateStr, "entrada1", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <input
                           type="time"
                           value={entry.saida1}
-                          onChange={(e) => handleTimeChange(dateStr, "saida1", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <input
                           type="time"
                           value={entry.entrada2}
-                          onChange={(e) => handleTimeChange(dateStr, "entrada2", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <input
                           type="time"
                           value={entry.saida2}
-                          onChange={(e) => handleTimeChange(dateStr, "saida2", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <input
                           type="time"
                           value={entry.entrada3}
-                          onChange={(e) => handleTimeChange(dateStr, "entrada3", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4">
                         <input
                           type="time"
                           value={entry.saida3}
-                          onChange={(e) => handleTimeChange(dateStr, "saida3", e.target.value)}
-                          className="border rounded p-1"
+                          readOnly
+                          className="border rounded p-1 bg-gray-50"
                         />
                       </td>
                       <td className="py-3 px-4 font-medium">{entry.totalHoras}</td>
@@ -236,6 +299,11 @@ const TimeTracking = () => {
           </table>
         </div>
       </div>
+
+      <RequestTimeCorrection
+        isOpen={showCorrectionModal}
+        onClose={() => setShowCorrectionModal(false)}
+      />
     </div>
   );
 };
