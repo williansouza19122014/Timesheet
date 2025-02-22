@@ -1,13 +1,14 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -16,8 +17,18 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Usuário de teste
+    if (email === "teste" && password === "123") {
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo ao TimeSheet",
+      });
+      navigate("/");
+      return;
+    }
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -43,23 +54,23 @@ const LoginForm = () => {
 
   return (
     <div className="w-full max-w-md mx-auto space-y-8">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold">Bem-vindo de volta</h2>
-        <p className="text-muted-foreground">
-          Faça login para acessar sua conta
-        </p>
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">TimeSheet</h1>
+        <h2 className="text-xl font-medium text-muted-foreground">
+          Sistema de Gestão de Horas
+        </h2>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium">
-            Email
+            Email ou Usuário
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
             <input
               id="email"
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
@@ -77,13 +88,24 @@ const LoginForm = () => {
             <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
+              className="w-full pl-10 pr-12 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-accent"
               placeholder="••••••••"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -98,13 +120,6 @@ const LoginForm = () => {
             "Entrar"
           )}
         </button>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Não tem uma conta?{" "}
-          <Link to="/register" className="text-accent hover:underline">
-            Registre-se
-          </Link>
-        </p>
       </form>
     </div>
   );
