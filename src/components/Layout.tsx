@@ -1,30 +1,13 @@
 
-import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { Clock, ChartBar, User, Users, Settings, LogOut } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-accent"></div>
-      </div>
-    );
-  }
 
   const navigation = [
     { name: "Time Tracking", href: "/", icon: Clock },
@@ -36,7 +19,6 @@ const Layout = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
       toast({
         description: "Logout realizado com sucesso",
       });
