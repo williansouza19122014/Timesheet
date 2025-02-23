@@ -1,0 +1,153 @@
+
+import { ChevronDown, ChevronUp } from "lucide-react";
+import ProjectAllocation from "./ProjectAllocation";
+
+interface TimeEntry {
+  entrada1: string;
+  saida1: string;
+  entrada2: string;
+  saida2: string;
+  entrada3: string;
+  saida3: string;
+  totalHoras: string;
+  projetos: ProjectEntry[];
+}
+
+interface ProjectEntry {
+  projeto: string;
+  horas: number;
+}
+
+interface TimeEntryTableProps {
+  days: Date[];
+  entries: { [key: string]: TimeEntry };
+  expandedDay: number | null;
+  onToggleExpand: (index: number) => void;
+  diasSemana: string[];
+  formatDate: (date: Date) => string;
+}
+
+const TimeEntryTable = ({
+  days,
+  entries,
+  expandedDay,
+  onToggleExpand,
+  diasSemana,
+  formatDate,
+}: TimeEntryTableProps) => {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="text-left py-3 px-4">Data</th>
+              <th className="text-left py-3 px-4">Dia</th>
+              <th className="text-left py-3 px-4">Entrada 1</th>
+              <th className="text-left py-3 px-4">Saída 1</th>
+              <th className="text-left py-3 px-4">Entrada 2</th>
+              <th className="text-left py-3 px-4">Saída 2</th>
+              <th className="text-left py-3 px-4">Entrada 3</th>
+              <th className="text-left py-3 px-4">Saída 3</th>
+              <th className="text-left py-3 px-4">Total</th>
+              <th className="w-10"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((date, index) => {
+              const dateStr = date.toISOString().split('T')[0];
+              const entry = entries[dateStr] || {
+                entrada1: "", saida1: "",
+                entrada2: "", saida2: "",
+                entrada3: "", saida3: "",
+                totalHoras: "00:00",
+                projetos: []
+              };
+
+              return (
+                <>
+                  <tr key={dateStr} className={`border-b hover:bg-muted/50 transition-colors ${
+                    expandedDay === index ? 'bg-muted/50' : ''
+                  }`}>
+                    <td className="py-3 px-4">{formatDate(date)}</td>
+                    <td className="py-3 px-4">{diasSemana[date.getDay()]}</td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.entrada1}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.saida1}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.entrada2}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.saida2}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.entrada3}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      <input
+                        type="time"
+                        value={entry.saida3}
+                        readOnly
+                        className="border rounded p-1 bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-3 px-4 font-medium">{entry.totalHoras}</td>
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={() => onToggleExpand(index)}
+                        className="p-1 hover:bg-muted rounded transition-colors"
+                      >
+                        {expandedDay === index ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedDay === index && (
+                    <tr className="bg-muted/30">
+                      <td colSpan={10} className="py-4 px-6">
+                        <ProjectAllocation onAddProject={() => {}} />
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default TimeEntryTable;

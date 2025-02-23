@@ -1,9 +1,11 @@
+
 import { useState } from "react";
-import { Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { addMonths, subMonths, getDaysInMonth, startOfMonth, format } from "date-fns";
+import TimeEntryActions from "@/components/time-tracking/TimeEntryActions";
+import MonthNavigation from "@/components/time-tracking/MonthNavigation";
+import TimeEntryTable from "@/components/time-tracking/TimeEntryTable";
 import RequestTimeCorrection from "@/components/RequestTimeCorrection";
-import { format, addMonths, subMonths, getDaysInMonth, startOfMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface TimeEntry {
   entrada1: string;
@@ -134,207 +136,28 @@ const TimeTracking = () => {
     return format(date, "dd/MM/yyyy");
   };
 
-  const handlePreviousMonth = () => {
-    setSelectedMonth(prev => subMonths(prev, 1));
-  };
-
-  const handleNextMonth = () => {
-    setSelectedMonth(prev => addMonths(prev, 1));
-  };
-
-  const resetToCurrentMonth = () => {
-    setSelectedMonth(new Date());
-  };
-
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold">Registro de Horas</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={handleRegisterTime}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-          >
-            <Clock className="w-5 h-5" />
-            Registrar Ponto
-          </button>
-          <button
-            onClick={() => setShowCorrectionModal(true)}
-            className="px-4 py-2 border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors"
-          >
-            Solicitar Correção
-          </button>
-        </div>
-      </div>
+      <TimeEntryActions
+        onRegisterTime={handleRegisterTime}
+        onRequestCorrection={() => setShowCorrectionModal(true)}
+      />
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePreviousMonth}
-            className="p-1 hover:bg-muted rounded transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h2 className="text-xl font-medium">
-            {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
-          </h2>
-          <button
-            onClick={handleNextMonth}
-            className="p-1 hover:bg-muted rounded transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-        <button
-          onClick={resetToCurrentMonth}
-          className="text-sm text-accent hover:underline"
-        >
-          Voltar para mês atual
-        </button>
-      </div>
+      <MonthNavigation
+        selectedMonth={selectedMonth}
+        onPreviousMonth={() => setSelectedMonth(prev => subMonths(prev, 1))}
+        onNextMonth={() => setSelectedMonth(prev => addMonths(prev, 1))}
+        onResetMonth={() => setSelectedMonth(new Date())}
+      />
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left py-3 px-4">Data</th>
-                <th className="text-left py-3 px-4">Dia</th>
-                <th className="text-left py-3 px-4">Entrada 1</th>
-                <th className="text-left py-3 px-4">Saída 1</th>
-                <th className="text-left py-3 px-4">Entrada 2</th>
-                <th className="text-left py-3 px-4">Saída 2</th>
-                <th className="text-left py-3 px-4">Entrada 3</th>
-                <th className="text-left py-3 px-4">Saída 3</th>
-                <th className="text-left py-3 px-4">Total</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {getDaysInCurrentMonth().map((date, index) => {
-                const dateStr = date.toISOString().split('T')[0];
-                const entry = entries[dateStr] || {
-                  entrada1: "", saida1: "",
-                  entrada2: "", saida2: "",
-                  entrada3: "", saida3: "",
-                  totalHoras: "00:00",
-                  projetos: []
-                };
-
-                return (
-                  <>
-                    <tr key={dateStr} className={`border-b hover:bg-muted/50 transition-colors ${
-                      expandedDay === index ? 'bg-muted/50' : ''
-                    }`}>
-                      <td className="py-3 px-4">{formatDate(date)}</td>
-                      <td className="py-3 px-4">{diasSemana[date.getDay()]}</td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.entrada1}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.saida1}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.entrada2}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.saida2}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.entrada3}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="time"
-                          value={entry.saida3}
-                          readOnly
-                          className="border rounded p-1 bg-gray-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4 font-medium">{entry.totalHoras}</td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => setExpandedDay(expandedDay === index ? null : index)}
-                          className="p-1 hover:bg-muted rounded transition-colors"
-                        >
-                          {expandedDay === index ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedDay === index && (
-                      <tr className="bg-muted/30">
-                        <td colSpan={10} className="py-4 px-6">
-                          <div className="space-y-4">
-                            <h3 className="font-medium">Apontamento de Projetos</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium mb-1">
-                                  Projeto
-                                </label>
-                                <select className="w-full p-2 border rounded-lg">
-                                  <option>Projeto A</option>
-                                  <option>Projeto B</option>
-                                  <option>Projeto C</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium mb-1">
-                                  Horas
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.5"
-                                  className="w-full p-2 border rounded-lg"
-                                  placeholder="0.0"
-                                />
-                              </div>
-                            </div>
-                            <div className="flex justify-end">
-                              <button className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors">
-                                Adicionar Projeto
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TimeEntryTable
+        days={getDaysInCurrentMonth()}
+        entries={entries}
+        expandedDay={expandedDay}
+        onToggleExpand={(index) => setExpandedDay(expandedDay === index ? null : index)}
+        diasSemana={diasSemana}
+        formatDate={formatDate}
+      />
 
       <RequestTimeCorrection
         isOpen={showCorrectionModal}
