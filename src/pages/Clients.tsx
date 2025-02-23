@@ -8,6 +8,9 @@ import ProjectTeamMember from "@/components/clients/ProjectTeamMember";
 interface TeamMember {
   id: string;
   name: string;
+  email: string;
+  startDate: string;
+  endDate: string;
   role: string;
 }
 
@@ -284,6 +287,9 @@ const Clients = () => {
                                 <ProjectTeamMember
                                   key={member.id}
                                   name={member.name}
+                                  email={member.email}
+                                  startDate={member.startDate}
+                                  endDate={member.endDate}
                                   role={member.role}
                                   onRemove={() => handleRemoveTeamMember(client.id, project.id, member.id)}
                                 />
