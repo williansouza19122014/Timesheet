@@ -1,8 +1,9 @@
-
 import { useState } from "react";
-import { Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RequestTimeCorrection from "@/components/RequestTimeCorrection";
+import { format, addMonths, subMonths, getDaysInMonth, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface TimeEntry {
   entrada1: string;
@@ -26,13 +27,13 @@ const TimeTracking = () => {
   const [entries, setEntries] = useState<{ [key: string]: TimeEntry }>({});
   const [lastRecordTime, setLastRecordTime] = useState<Date | null>(null);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
   const { toast } = useToast();
-  
+
   const handleRegisterTime = () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     
-    // Validar intervalo mínimo de 5 minutos
     if (lastRecordTime && (now.getTime() - lastRecordTime.getTime()) < 5 * 60 * 1000) {
       toast({
         variant: "destructive",
@@ -52,7 +53,6 @@ const TimeTracking = () => {
       projetos: []
     };
 
-    // Determinar qual campo deve ser preenchido
     let fieldToUpdate = "";
     if (!entry.entrada1) fieldToUpdate = "entrada1";
     else if (!entry.saida1) fieldToUpdate = "saida1";
@@ -116,16 +116,14 @@ const TimeTracking = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
-  const getDaysInCurrentWeek = () => {
-    const today = new Date();
+  const getDaysInCurrentMonth = () => {
+    const daysInMonth = getDaysInMonth(selectedMonth);
+    const startDate = startOfMonth(selectedMonth);
     const days = [];
     
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - today.getDay());
-    
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(sunday);
-      day.setDate(sunday.getDate() + i);
+    for (let i = 0; i < daysInMonth; i++) {
+      const day = new Date(startDate);
+      day.setDate(startDate.getDate() + i);
       days.push(day);
     }
     
@@ -133,7 +131,19 @@ const TimeTracking = () => {
   };
 
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return format(date, "dd/MM/yyyy");
+  };
+
+  const handlePreviousMonth = () => {
+    setSelectedMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setSelectedMonth(prev => addMonths(prev, 1));
+  };
+
+  const resetToCurrentMonth = () => {
+    setSelectedMonth(new Date());
   };
 
   return (
@@ -157,6 +167,32 @@ const TimeTracking = () => {
         </div>
       </div>
 
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePreviousMonth}
+            className="p-1 hover:bg-muted rounded transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <h2 className="text-xl font-medium">
+            {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
+          </h2>
+          <button
+            onClick={handleNextMonth}
+            className="p-1 hover:bg-muted rounded transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+        <button
+          onClick={resetToCurrentMonth}
+          className="text-sm text-accent hover:underline"
+        >
+          Voltar para mês atual
+        </button>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -175,8 +211,8 @@ const TimeTracking = () => {
               </tr>
             </thead>
             <tbody>
-              {getDaysInCurrentWeek().map((date, index) => {
-                const dateStr = formatDate(date);
+              {getDaysInCurrentMonth().map((date, index) => {
+                const dateStr = date.toISOString().split('T')[0];
                 const entry = entries[dateStr] || {
                   entrada1: "", saida1: "",
                   entrada2: "", saida2: "",
@@ -190,7 +226,7 @@ const TimeTracking = () => {
                     <tr key={dateStr} className={`border-b hover:bg-muted/50 transition-colors ${
                       expandedDay === index ? 'bg-muted/50' : ''
                     }`}>
-                      <td className="py-3 px-4">{dateStr}</td>
+                      <td className="py-3 px-4">{formatDate(date)}</td>
                       <td className="py-3 px-4">{diasSemana[date.getDay()]}</td>
                       <td className="py-3 px-4">
                         <input

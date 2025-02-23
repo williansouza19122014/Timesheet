@@ -11,6 +11,7 @@ import Team from "./pages/Team";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import ApprovalRequests from "./pages/ApprovalRequests";
+import Clients from "./pages/Clients";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/approvals" element={<ApprovalRequests />} />
+            <Route path="/clients" element={<Clients />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
