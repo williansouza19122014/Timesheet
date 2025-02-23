@@ -50,10 +50,10 @@ const TimeEntryTable = ({
   clients,
 }: TimeEntryTableProps) => {
   const getRowClassName = (date: Date, entry: TimeEntry) => {
-    const baseClasses = "border-b hover:bg-muted/50 transition-colors";
+    const baseClasses = "transition-colors";
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-    const hasProjectHours = entry.projetos.reduce((acc, proj) => acc + proj.horas, 0);
-    const [hours, minutes] = entry.totalHoras.split(':').map(Number);
+    const hasProjectHours = entry?.projetos?.reduce((acc, proj) => acc + proj.horas, 0) || 0;
+    const [hours, minutes] = (entry?.totalHoras || "00:00").split(':').map(Number);
     const totalWorkMinutes = (hours * 60 + minutes);
     const totalProjectMinutes = hasProjectHours * 60;
 
@@ -102,7 +102,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.entrada1}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -110,7 +110,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.saida1}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -118,7 +118,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.entrada2}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -126,7 +126,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.saida2}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -134,7 +134,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.entrada3}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4">
@@ -142,7 +142,7 @@ const TimeEntryTable = ({
                         type="time"
                         value={entry.saida3}
                         readOnly
-                        className="border rounded p-1 bg-gray-50"
+                        className="border rounded p-1 bg-transparent"
                       />
                     </td>
                     <td className="py-3 px-4 font-medium">{entry.totalHoras}</td>
@@ -160,7 +160,7 @@ const TimeEntryTable = ({
                     </td>
                   </tr>
                   {expandedDay === index && (
-                    <tr className="bg-muted/30">
+                    <tr>
                       <td colSpan={10} className="py-4 px-6">
                         <ProjectAllocation
                           clients={clients}
