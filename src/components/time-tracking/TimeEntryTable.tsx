@@ -50,7 +50,7 @@ const TimeEntryTable = ({
   clients,
 }: TimeEntryTableProps) => {
   const getRowClassName = (date: Date, entry: TimeEntry) => {
-    const baseClasses = "transition-colors";
+    const baseClasses = "transition-colors hover:bg-gray-50/50";
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     const hasProjectHours = entry?.projetos?.reduce((acc, proj) => acc + proj.horas, 0) || 0;
     const [hours, minutes] = (entry?.totalHoras || "00:00").split(':').map(Number);
@@ -69,19 +69,19 @@ const TimeEntryTable = ({
         <table className="w-full">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="text-left py-3 px-4">Data</th>
-              <th className="text-left py-3 px-4">Dia</th>
-              <th className="text-left py-3 px-4">Entrada 1</th>
-              <th className="text-left py-3 px-4">Saída 1</th>
-              <th className="text-left py-3 px-4">Entrada 2</th>
-              <th className="text-left py-3 px-4">Saída 2</th>
-              <th className="text-left py-3 px-4">Entrada 3</th>
-              <th className="text-left py-3 px-4">Saída 3</th>
-              <th className="text-left py-3 px-4">Total</th>
+              <th className="text-left py-2 px-4">Data</th>
+              <th className="text-left py-2 px-4">Dia</th>
+              <th className="text-left py-2 px-4">Entrada 1</th>
+              <th className="text-left py-2 px-4">Saída 1</th>
+              <th className="text-left py-2 px-4">Entrada 2</th>
+              <th className="text-left py-2 px-4">Saída 2</th>
+              <th className="text-left py-2 px-4">Entrada 3</th>
+              <th className="text-left py-2 px-4">Saída 3</th>
+              <th className="text-left py-2 px-4">Total</th>
               <th className="w-10"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="text-sm">
             {days.map((date, index) => {
               const dateStr = date.toISOString().split('T')[0];
               const entry = entries[dateStr] || {
@@ -95,9 +95,9 @@ const TimeEntryTable = ({
               return (
                 <>
                   <tr key={dateStr} className={getRowClassName(date, entry)}>
-                    <td className="py-3 px-4">{formatDate(date)}</td>
-                    <td className="py-3 px-4">{diasSemana[date.getDay()]}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">{formatDate(date)}</td>
+                    <td className="py-1.5 px-4">{diasSemana[date.getDay()]}</td>
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.entrada1}
@@ -105,7 +105,7 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.saida1}
@@ -113,7 +113,7 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.entrada2}
@@ -121,7 +121,7 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.saida2}
@@ -129,7 +129,7 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.entrada3}
@@ -137,7 +137,7 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4">
                       <input
                         type="time"
                         value={entry.saida3}
@@ -145,8 +145,8 @@ const TimeEntryTable = ({
                         className="border rounded p-1 bg-transparent"
                       />
                     </td>
-                    <td className="py-3 px-4 font-medium">{entry.totalHoras}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-1.5 px-4 font-medium">{entry.totalHoras}</td>
+                    <td className="py-1.5 px-4">
                       <button
                         onClick={() => onToggleExpand(index)}
                         className="p-1 hover:bg-muted rounded transition-colors"
