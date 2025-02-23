@@ -2,11 +2,20 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ProjectTeamForm from "@/components/clients/ProjectTeamForm";
+import ProjectTeamMember from "@/components/clients/ProjectTeamMember";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+}
 
 interface Project {
   id: string;
   name: string;
   description: string;
+  team: TeamMember[];
 }
 
 interface Client {
@@ -21,6 +30,7 @@ const Clients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [showNewProjectForm, setShowNewProjectForm] = useState<string | null>(null);
+  const [showTeamForm, setShowTeamForm] = useState<{clientId: string, projectId: string} | null>(null);
   const { toast } = useToast();
 
   const handleAddClient = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,7 +60,8 @@ const Clients = () => {
     const newProject: Project = {
       id: crypto.randomUUID(),
       name: formData.get("projectName") as string,
-      description: formData.get("description") as string
+      description: formData.get("description") as string,
+      team: []
     };
 
     setClients(prev => prev.map(client => {
@@ -64,9 +75,60 @@ const Clients = () => {
     }));
 
     setShowNewProjectForm(null);
+    setShowTeamForm({ clientId, projectId: newProject.id });
     toast({
       title: "Projeto adicionado",
       description: `${newProject.name} foi adicionado com sucesso`
+    });
+  };
+
+  const handleAddTeamMember = (clientId: string, projectId: string, member: TeamMember) => {
+    setClients(prev => prev.map(client => {
+      if (client.id === clientId) {
+        return {
+          ...client,
+          projects: client.projects.map(project => {
+            if (project.id === projectId) {
+              return {
+                ...project,
+                team: [...project.team, member]
+              };
+            }
+            return project;
+          })
+        };
+      }
+      return client;
+    }));
+
+    toast({
+      title: "Membro adicionado",
+      description: `${member.name} foi adicionado à equipe`
+    });
+  };
+
+  const handleRemoveTeamMember = (clientId: string, projectId: string, memberId: string) => {
+    setClients(prev => prev.map(client => {
+      if (client.id === clientId) {
+        return {
+          ...client,
+          projects: client.projects.map(project => {
+            if (project.id === projectId) {
+              return {
+                ...project,
+                team: project.team.filter(member => member.id !== memberId)
+              };
+            }
+            return project;
+          })
+        };
+      }
+      return client;
+    }));
+
+    toast({
+      title: "Membro removido",
+      description: "Membro removido da equipe com sucesso"
     });
   };
 
@@ -187,19 +249,55 @@ const Clients = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <h3 className="font-medium">Projetos</h3>
-              {client.projects.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum projeto cadastrado</p>
-              ) : (
-                <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {client.projects.map(project => (
-                    <div key={project.id} className="p-4 border rounded-lg">
+            <div className="space-y-4">
+              {client.projects.map(project => (
+                <div key={project.id} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
                       <h4 className="font-medium">{project.name}</h4>
                       <p className="text-sm text-muted-foreground">{project.description}</p>
                     </div>
-                  ))}
+                    <button
+                      onClick={() => setShowTeamForm({ clientId: client.id, projectId: project.id })}
+                      className="px-3 py-1 text-sm border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors"
+                    >
+                      Gerenciar Equipe
+                    </button>
+                  </div>
+
+                  {showTeamForm?.clientId === client.id && showTeamForm?.projectId === project.id && (
+                    <div className="border-t pt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="font-medium mb-2">Adicionar Membro</h5>
+                          <ProjectTeamForm
+                            onAddMember={(member) => handleAddTeamMember(client.id, project.id, member)}
+                          />
+                        </div>
+                        <div>
+                          <h5 className="font-medium mb-2">Equipe Atual</h5>
+                          <div className="space-y-2">
+                            {project.team.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Nenhum membro na equipe</p>
+                            ) : (
+                              project.team.map(member => (
+                                <ProjectTeamMember
+                                  key={member.id}
+                                  name={member.name}
+                                  role={member.role}
+                                  onRemove={() => handleRemoveTeamMember(client.id, project.id, member.id)}
+                                />
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              ))}
+              {client.projects.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhum projeto cadastrado</p>
               )}
             </div>
           </div>

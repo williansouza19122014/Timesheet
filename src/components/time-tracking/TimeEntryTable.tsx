@@ -18,6 +18,18 @@ interface ProjectEntry {
   horas: number;
 }
 
+interface Client {
+  id: string;
+  name: string;
+  projects: Project[];
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+}
+
 interface TimeEntryTableProps {
   days: Date[];
   entries: { [key: string]: TimeEntry };
@@ -25,6 +37,7 @@ interface TimeEntryTableProps {
   onToggleExpand: (index: number) => void;
   diasSemana: string[];
   formatDate: (date: Date) => string;
+  clients: Client[];
 }
 
 const TimeEntryTable = ({
@@ -34,7 +47,22 @@ const TimeEntryTable = ({
   onToggleExpand,
   diasSemana,
   formatDate,
+  clients,
 }: TimeEntryTableProps) => {
+  const getRowClassName = (date: Date, entry: TimeEntry) => {
+    const baseClasses = "border-b hover:bg-muted/50 transition-colors";
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const hasProjectHours = entry.projetos.reduce((acc, proj) => acc + proj.horas, 0);
+    const [hours, minutes] = entry.totalHoras.split(':').map(Number);
+    const totalWorkMinutes = (hours * 60 + minutes);
+    const totalProjectMinutes = hasProjectHours * 60;
+
+    if (isWeekend) return `${baseClasses} bg-gray-50`;
+    if (totalWorkMinutes === 0) return baseClasses;
+    if (totalWorkMinutes === totalProjectMinutes) return `${baseClasses} bg-green-50`;
+    return `${baseClasses} bg-red-50`;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
       <div className="overflow-x-auto">
@@ -66,9 +94,7 @@ const TimeEntryTable = ({
 
               return (
                 <>
-                  <tr key={dateStr} className={`border-b hover:bg-muted/50 transition-colors ${
-                    expandedDay === index ? 'bg-muted/50' : ''
-                  }`}>
+                  <tr key={dateStr} className={getRowClassName(date, entry)}>
                     <td className="py-3 px-4">{formatDate(date)}</td>
                     <td className="py-3 px-4">{diasSemana[date.getDay()]}</td>
                     <td className="py-3 px-4">
@@ -136,7 +162,13 @@ const TimeEntryTable = ({
                   {expandedDay === index && (
                     <tr className="bg-muted/30">
                       <td colSpan={10} className="py-4 px-6">
-                        <ProjectAllocation onAddProject={() => {}} />
+                        <ProjectAllocation
+                          clients={clients}
+                          date={date}
+                          onAddProject={() => {}}
+                          totalHours={entry.totalHoras}
+                          allocatedHours="00:00"
+                        />
                       </td>
                     </tr>
                   )}
