@@ -23,6 +23,18 @@ interface ProjectEntry {
   horas: number;
 }
 
+interface Client {
+  id: string;
+  name: string;
+  projects: Project[];
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+}
+
 const TimeTracking = () => {
   const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
@@ -30,6 +42,7 @@ const TimeTracking = () => {
   const [lastRecordTime, setLastRecordTime] = useState<Date | null>(null);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [clients] = useState<Client[]>([]); // Initialize empty clients array
   const { toast } = useToast();
 
   const handleRegisterTime = () => {
@@ -157,6 +170,7 @@ const TimeTracking = () => {
         onToggleExpand={(index) => setExpandedDay(expandedDay === index ? null : index)}
         diasSemana={diasSemana}
         formatDate={formatDate}
+        clients={clients}
       />
 
       <RequestTimeCorrection
