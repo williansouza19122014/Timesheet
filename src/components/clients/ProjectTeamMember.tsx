@@ -1,30 +1,68 @@
 
+import { Pencil, Trash2 } from "lucide-react";
+
 interface ProjectTeamMemberProps {
-  onRemove: () => void;
   name: string;
   email: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
   role: string;
+  isLeader?: boolean;
+  onRemove: () => void;
+  onEdit: () => void;
 }
 
-const ProjectTeamMember = ({ onRemove, name, email, startDate, endDate, role }: ProjectTeamMemberProps) => {
+const ProjectTeamMember = ({ 
+  name, 
+  email, 
+  startDate, 
+  endDate, 
+  role, 
+  isLeader,
+  onRemove,
+  onEdit
+}: ProjectTeamMemberProps) => {
+  const isActive = !endDate;
+
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg">
       <div className="space-y-1">
-        <p className="font-medium">{name}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-medium">{name}</p>
+          {isLeader && (
+            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+              Líder
+            </span>
+          )}
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            isActive 
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-100 text-gray-700"
+          }`}>
+            {isActive ? "Ativo" : "Inativo"}
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">{email}</p>
         <p className="text-xs text-muted-foreground">
-          {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+          {new Date(startDate).toLocaleDateString()} 
+          {endDate && ` - ${new Date(endDate).toLocaleDateString()}`}
         </p>
         <p className="text-sm">{role}</p>
       </div>
-      <button
-        onClick={onRemove}
-        className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"
-      >
-        Remover
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onEdit}
+          className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+        <button
+          onClick={onRemove}
+          className="text-destructive hover:bg-destructive/10 p-1 rounded transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };

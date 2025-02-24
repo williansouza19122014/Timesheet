@@ -1,62 +1,91 @@
 
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types/clients";
+import { Calendar } from "lucide-react";
 
 interface ClientFormProps {
   onSubmit: (client: Client) => void;
   onCancel: () => void;
+  editingClient?: Client;
 }
 
-const ClientForm = ({ onSubmit, onCancel }: ClientFormProps) => {
+const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
+  const [client, setClient] = useState<Partial<Client>>(editingClient || {
+    name: "",
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: "",
+  });
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
     
+    if (!client.name || !client.startDate) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Nome e Data de Início são obrigatórios",
+      });
+      return;
+    }
+
     const newClient: Client = {
-      id: crypto.randomUUID(),
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      projects: []
+      id: editingClient?.id || crypto.randomUUID(),
+      name: client.name,
+      startDate: client.startDate,
+      endDate: client.endDate,
+      projects: editingClient?.projects || []
     };
 
     onSubmit(newClient);
     toast({
-      title: "Cliente adicionado",
-      description: `${newClient.name} foi adicionado com sucesso`
+      title: `Cliente ${editingClient ? 'atualizado' : 'adicionado'}`,
+      description: `${newClient.name} foi ${editingClient ? 'atualizado' : 'adicionado'} com sucesso`
     });
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
-      <h2 className="text-xl font-medium mb-4">Novo Cliente</h2>
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <h2 className="text-xl font-medium mb-4">
+        {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Nome</label>
+          <label className="block text-sm font-medium mb-1">Nome do Cliente *</label>
           <input
-            name="name"
+            value={client.name}
+            onChange={(e) => setClient({ ...client, name: e.target.value })}
             required
             className="w-full p-2 border rounded-lg"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            name="email"
-            type="email"
-            required
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Telefone</label>
-          <input
-            name="phone"
-            required
-            className="w-full p-2 border rounded-lg"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Data de Início *</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={client.startDate}
+                onChange={(e) => setClient({ ...client, startDate: e.target.value })}
+                required
+                className="w-full p-2 border rounded-lg"
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Data de Fim</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={client.endDate}
+                onChange={(e) => setClient({ ...client, endDate: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+          </div>
         </div>
         <div className="flex justify-end gap-2">
           <button
@@ -70,7 +99,7 @@ const ClientForm = ({ onSubmit, onCancel }: ClientFormProps) => {
             type="submit"
             className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
           >
-            Salvar
+            {editingClient ? 'Atualizar' : 'Salvar'}
           </button>
         </div>
       </form>

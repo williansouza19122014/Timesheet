@@ -11,7 +11,7 @@ const Layout = () => {
 
   const navigation = [
     { name: "Time Tracking", href: "/", icon: Clock },
-    { name: "Clientes e Projetos", href: "/clients", icon: Building2 },
+    { name: "Clients and Projects", href: "/clients", icon: Building2 },
     { name: "Reports", href: "/reports", icon: ChartBar },
     { name: "Team", href: "/team", icon: Users },
     { name: "Profile", href: "/profile", icon: User },
