@@ -24,6 +24,12 @@ const ProjectCard = ({
         <div>
           <h4 className="font-medium">{project.name}</h4>
           <p className="text-sm text-muted-foreground">{project.description}</p>
+          {project.startDate && (
+            <p className="text-xs text-muted-foreground">
+              {new Date(project.startDate).toLocaleDateString()}
+              {project.endDate && ` - ${new Date(project.endDate).toLocaleDateString()}`}
+            </p>
+          )}
           {project.leader && (
             <p className="text-sm mt-1">
               Líder: <span className="font-medium">{project.leader.name}</span>
@@ -45,6 +51,7 @@ const ProjectCard = ({
               <h5 className="font-medium mb-2">Adicionar Membro</h5>
               <ProjectTeamForm
                 onAddMember={(member) => onAddTeamMember(member)}
+                hasLeader={!!project.leader}
               />
             </div>
             <div>
@@ -61,11 +68,33 @@ const ProjectCard = ({
                       startDate={member.startDate}
                       endDate={member.endDate}
                       role={member.role}
+                      isLeader={member.isLeader}
+                      onEdit={() => {}} // Temporary empty function until edit functionality is implemented
                       onRemove={() => onRemoveTeamMember(member.id)}
                     />
                   ))
                 )}
               </div>
+              {project.previousMembers && project.previousMembers.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="font-medium mb-2">Membros Anteriores</h5>
+                  <div className="space-y-2">
+                    {project.previousMembers.map(member => (
+                      <ProjectTeamMember
+                        key={member.id}
+                        name={member.name}
+                        email={member.email}
+                        startDate={member.startDate}
+                        endDate={member.endDate}
+                        role={member.role}
+                        isLeader={member.isLeader}
+                        onEdit={() => {}} // Temporary empty function until edit functionality is implemented
+                        onRemove={() => onRemoveTeamMember(member.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

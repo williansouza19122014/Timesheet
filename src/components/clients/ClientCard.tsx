@@ -39,7 +39,17 @@ const ClientCard = ({
       >
         <div>
           <h2 className="text-lg font-medium">{client.name}</h2>
-          <p className="text-sm text-muted-foreground">{client.email}</p>
+          <p className="text-sm text-muted-foreground">
+            {new Date(client.startDate).toLocaleDateString()}
+            {client.endDate && ` - ${new Date(client.endDate).toLocaleDateString()}`}
+          </p>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            !client.endDate 
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-100 text-gray-700"
+          }`}>
+            {!client.endDate ? "Ativo" : "Inativo"}
+          </span>
         </div>
         <div className="flex items-center gap-4">
           <button
