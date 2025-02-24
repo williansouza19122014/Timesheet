@@ -9,12 +9,20 @@ import ClientCard from "@/components/clients/ClientCard";
 const Clients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewProjectForm, setShowNewProjectForm] = useState<string | null>(null);
   const [showTeamForm, setShowTeamForm] = useState<{clientId: string, projectId: string} | null>(null);
   const [expandedClients, setExpandedClients] = useState<string[]>([]);
 
   const handleAddClient = (newClient: Client) => {
-    setClients(prev => [...prev, newClient]);
+    if (editingClient) {
+      setClients(prev => prev.map(client => 
+        client.id === editingClient.id ? newClient : client
+      ));
+      setEditingClient(null);
+    } else {
+      setClients(prev => [...prev, newClient]);
+    }
     setShowNewClientForm(false);
   };
 
@@ -62,9 +70,17 @@ const Clients = () => {
           ...client,
           projects: client.projects.map(project => {
             if (project.id === projectId) {
+              const removedMember = project.team.find(m => m.id === memberId);
+              const updatedTeam = project.team.filter(m => m.id !== memberId);
+              const updatedPreviousMembers = [
+                ...(project.previousMembers || []),
+                ...(removedMember ? [removedMember] : [])
+              ];
+
               return {
                 ...project,
-                team: project.team.filter(member => member.id !== memberId),
+                team: updatedTeam,
+                previousMembers: updatedPreviousMembers,
                 ...(project.leader?.id === memberId && { leader: undefined })
               };
             }
@@ -79,9 +95,12 @@ const Clients = () => {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-4xl font-bold">Clientes</h1>
+        <h1 className="text-4xl font-bold">Clients and Projects</h1>
         <button
-          onClick={() => setShowNewClientForm(true)}
+          onClick={() => {
+            setEditingClient(null);
+            setShowNewClientForm(true);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
         >
           <Plus className="w-5 h-5" />
@@ -89,10 +108,14 @@ const Clients = () => {
         </button>
       </div>
 
-      {showNewClientForm && (
+      {(showNewClientForm || editingClient) && (
         <ClientForm
           onSubmit={handleAddClient}
-          onCancel={() => setShowNewClientForm(false)}
+          onCancel={() => {
+            setShowNewClientForm(false);
+            setEditingClient(null);
+          }}
+          editingClient={editingClient || undefined}
         />
       )}
 
@@ -119,6 +142,10 @@ const Clients = () => {
               handleAddTeamMember(client.id, projectId, member, isLeader)}
             onRemoveTeamMember={(projectId, memberId) => 
               handleRemoveTeamMember(client.id, projectId, memberId)}
+            onEdit={() => {
+              setEditingClient(client);
+              setShowNewClientForm(true);
+            }}
           />
         ))}
       </div>

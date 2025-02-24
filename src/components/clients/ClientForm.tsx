@@ -13,6 +13,7 @@ interface ClientFormProps {
 const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
   const [client, setClient] = useState<Partial<Client>>(editingClient || {
     name: "",
+    cnpj: "",
     startDate: new Date().toISOString().split('T')[0],
     endDate: "",
   });
@@ -21,11 +22,11 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!client.name || !client.startDate) {
+    if (!client.name || !client.cnpj || !client.startDate) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nome e Data de Início são obrigatórios",
+        description: "Nome, CNPJ e Data de Início são obrigatórios",
       });
       return;
     }
@@ -33,6 +34,7 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
     const newClient: Client = {
       id: editingClient?.id || crypto.randomUUID(),
       name: client.name,
+      cnpj: client.cnpj,
       startDate: client.startDate,
       endDate: client.endDate,
       projects: editingClient?.projects || []
@@ -51,14 +53,25 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
         {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Nome do Cliente *</label>
-          <input
-            value={client.name}
-            onChange={(e) => setClient({ ...client, name: e.target.value })}
-            required
-            className="w-full p-2 border rounded-lg"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nome do Cliente *</label>
+            <input
+              value={client.name}
+              onChange={(e) => setClient({ ...client, name: e.target.value })}
+              required
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">CNPJ *</label>
+            <input
+              value={client.cnpj}
+              onChange={(e) => setClient({ ...client, cnpj: e.target.value })}
+              required
+              className="w-full p-2 border rounded-lg"
+            />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

@@ -24,6 +24,7 @@ export interface Project {
 export interface Client {
   id: string;
   name: string;
+  cnpj: string;
   startDate: string;
   endDate?: string;
   projects: Project[];
