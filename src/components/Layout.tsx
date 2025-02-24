@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Clock, ChartBar, User, Users, Settings, LogOut } from "lucide-react";
+import { Clock, ChartBar, User, Users, Settings, LogOut, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Layout = () => {
@@ -11,6 +11,7 @@ const Layout = () => {
 
   const navigation = [
     { name: "Time Tracking", href: "/", icon: Clock },
+    { name: "Clientes e Projetos", href: "/clients", icon: Building2 },
     { name: "Reports", href: "/reports", icon: ChartBar },
     { name: "Team", href: "/team", icon: Users },
     { name: "Profile", href: "/profile", icon: User },
