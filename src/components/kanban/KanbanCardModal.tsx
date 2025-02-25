@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { X, ArrowUpRight, Edit2, Trash2 } from "lucide-react";
+import { X, ArrowUpRight, Edit2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,11 +34,14 @@ export const KanbanCardModal = ({
     setNewMessage("");
   };
 
-  // Simulated hours data for the specific date (replace with real data in production)
+  const handleViewDocument = (documentUrl: string) => {
+    window.open(documentUrl, '_blank');
+  };
+
   const hoursData = {
     date: new Date(card.timeCorrection.date),
-    totalHours: 6, // Example: hours worked on that specific date
-    projectHours: 8, // Example: expected hours for that date
+    totalHours: 6,
+    projectHours: 8,
     get difference() {
       return this.projectHours - this.totalHours;
     }
@@ -51,7 +53,6 @@ export const KanbanCardModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg w-[800px] max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">{card.title}</h2>
           <div className="flex items-center gap-2">
@@ -80,10 +81,8 @@ export const KanbanCardModal = ({
         </div>
 
         <div className="flex flex-1 min-h-0">
-          {/* Main content */}
           <div className="flex-1 p-6 border-r overflow-y-auto">
             <div className="space-y-6">
-              {/* Hours comparison panel */}
               <div className="bg-gray-50 p-4 rounded-lg border">
                 <h3 className="font-medium mb-3">
                   Comparativo de Horas - {hoursData.date.toLocaleDateString()}
@@ -121,7 +120,16 @@ export const KanbanCardModal = ({
                   </div>
                   <p><strong>Justificativa:</strong> {card.timeCorrection.justification}</p>
                   {card.timeCorrection.document && (
-                    <p><strong>Documento:</strong> {card.timeCorrection.document}</p>
+                    <p className="flex items-center gap-2">
+                      <strong>Documento:</strong>
+                      <button
+                        onClick={() => handleViewDocument(card.timeCorrection.document!)}
+                        className="text-blue-500 hover:text-blue-700 underline inline-flex items-center gap-1"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {card.timeCorrection.document}
+                      </button>
+                    </p>
                   )}
                 </div>
               </div>
@@ -158,7 +166,6 @@ export const KanbanCardModal = ({
             </div>
           </div>
 
-          {/* Chat section */}
           <div className="w-80 flex flex-col">
             <div className="p-4 border-b">
               <h3 className="font-medium">Conversas</h3>

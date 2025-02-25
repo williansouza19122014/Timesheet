@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +8,7 @@ import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCardModal } from "@/components/kanban/KanbanCardModal";
 import { mockData } from "@/data/mockKanbanData";
 import type { KanbanCard, KanbanColumn as IKanbanColumn } from "@/types/kanban";
+import { EditKanbanCardModal } from "@/components/kanban/EditKanbanCardModal";
 
 const initialColumns: IKanbanColumn[] = [
   {
@@ -39,6 +39,7 @@ const Kanban = () => {
   const [columns, setColumns] = useState<IKanbanColumn[]>(initialColumns);
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingCard, setEditingCard] = useState<KanbanCard | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -110,23 +111,26 @@ const Kanban = () => {
   };
 
   const handleEditCard = (cardId: string) => {
-    toast({
-      title: "Editar solicitação",
-      description: "Implementar edição da solicitação"
-    });
+    const cardToEdit = columns.flatMap(col => col.cards).find(card => card.id === cardId);
+    if (cardToEdit) {
+      setEditingCard(cardToEdit);
+      setSelectedCard(null);
+    }
   };
 
-  const handleDeleteCard = (cardId: string) => {
+  const handleSaveEdit = (updatedCard: KanbanCard) => {
     setColumns(prev => {
       return prev.map(column => ({
         ...column,
-        cards: column.cards.filter(card => card.id !== cardId)
+        cards: column.cards.map(card => 
+          card.id === updatedCard.id ? updatedCard : card
+        )
       }));
     });
-    setSelectedCard(null);
+    setEditingCard(null);
     toast({
-      title: "Solicitação excluída",
-      description: "A solicitação foi removida com sucesso"
+      title: "Solicitação atualizada",
+      description: "As alterações foram salvas com sucesso"
     });
   };
 
@@ -239,6 +243,14 @@ const Kanban = () => {
           onSendMessage={handleSendMessage}
           onEdit={handleEditCard}
           onDelete={handleDeleteCard}
+        />
+      )}
+
+      {editingCard && (
+        <EditKanbanCardModal
+          card={editingCard}
+          onClose={() => setEditingCard(null)}
+          onSave={handleSaveEdit}
         />
       )}
     </div>
