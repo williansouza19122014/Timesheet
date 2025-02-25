@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Calendar, Check } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { TeamMember } from "@/types/clients";
 
 interface ProjectTeamFormProps {
@@ -48,58 +48,62 @@ const ProjectTeamForm = ({ onAddMember, hasLeader }: ProjectTeamFormProps) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1">Nome *</label>
-        <input
-          value={member.name}
-          onChange={(e) => setMember({ ...member, name: e.target.value })}
-          required
-          className="w-full p-2 border rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Email Institucional *</label>
-        <input
-          type="email"
-          value={member.email}
-          onChange={(e) => setMember({ ...member, email: e.target.value })}
-          required
-          className="w-full p-2 border rounded-lg"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Data de Início *</label>
-        <div className="relative">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Nome *</label>
           <input
-            type="date"
-            value={member.startDate}
-            onChange={(e) => setMember({ ...member, startDate: e.target.value })}
+            value={member.name}
+            onChange={(e) => setMember({ ...member, name: e.target.value })}
             required
             className="w-full p-2 border rounded-lg"
           />
-          <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Data de Fim</label>
-        <div className="relative">
+        <div>
+          <label className="block text-sm font-medium mb-1">Email Institucional *</label>
           <input
-            type="date"
-            value={member.endDate}
-            onChange={(e) => setMember({ ...member, endDate: e.target.value })}
+            type="email"
+            value={member.email}
+            onChange={(e) => setMember({ ...member, email: e.target.value })}
+            required
             className="w-full p-2 border rounded-lg"
           />
-          <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Cargo/Função *</label>
-        <input
-          value={member.role}
-          onChange={(e) => setMember({ ...member, role: e.target.value })}
-          required
-          className="w-full p-2 border rounded-lg"
-        />
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Data de Início *</label>
+          <div className="relative">
+            <input
+              type="date"
+              value={member.startDate}
+              onChange={(e) => setMember({ ...member, startDate: e.target.value })}
+              required
+              className="w-full p-2 border rounded-lg"
+            />
+            <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Data de Fim</label>
+          <div className="relative">
+            <input
+              type="date"
+              value={member.endDate}
+              onChange={(e) => setMember({ ...member, endDate: e.target.value })}
+              className="w-full p-2 border rounded-lg"
+            />
+            <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Cargo/Função *</label>
+          <input
+            value={member.role}
+            onChange={(e) => setMember({ ...member, role: e.target.value })}
+            required
+            className="w-full p-2 border rounded-lg"
+          />
+        </div>
       </div>
       {!hasLeader && (
         <div className="flex items-center gap-2">

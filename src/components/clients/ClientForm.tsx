@@ -19,6 +19,16 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
   });
   const { toast } = useToast();
 
+  const handleCNPJChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 14) value = value.slice(0, 14);
+    value = value.replace(/^(\d{2})(\d)/g, '$1.$2');
+    value = value.replace(/^(\d{2})\.(\d{3})(\d)/g, '$1.$2.$3');
+    value = value.replace(/\.(\d{3})(\d)/g, '.$1/$2');
+    value = value.replace(/(\d{4})(\d)/g, '$1-$2');
+    setClient({ ...client, cnpj: value });
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -53,7 +63,7 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
         {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nome do Cliente *</label>
             <input
@@ -67,36 +77,38 @@ const ClientForm = ({ onSubmit, onCancel, editingClient }: ClientFormProps) => {
             <label className="block text-sm font-medium mb-1">CNPJ *</label>
             <input
               value={client.cnpj}
-              onChange={(e) => setClient({ ...client, cnpj: e.target.value })}
+              onChange={handleCNPJChange}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
               required
               className="w-full p-2 border rounded-lg"
             />
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Data de Início *</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={client.startDate}
-                onChange={(e) => setClient({ ...client, startDate: e.target.value })}
-                required
-                className="w-full p-2 border rounded-lg"
-              />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Data de Início *</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={client.startDate}
+                  onChange={(e) => setClient({ ...client, startDate: e.target.value })}
+                  required
+                  className="w-full p-2 border rounded-lg"
+                />
+                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Data de Fim</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={client.endDate}
-                onChange={(e) => setClient({ ...client, endDate: e.target.value })}
-                className="w-full p-2 border rounded-lg"
-              />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Data de Fim</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={client.endDate}
+                  onChange={(e) => setClient({ ...client, endDate: e.target.value })}
+                  className="w-full p-2 border rounded-lg"
+                />
+                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
             </div>
           </div>
         </div>
