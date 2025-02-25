@@ -15,10 +15,7 @@ interface KanbanColumnProps {
 export const KanbanColumn = ({
   column,
   selectedCardId,
-  onCardSelect,
-  onAnalyze,
-  onApprove,
-  onRequestCorrection
+  onCardSelect
 }: KanbanColumnProps) => {
   return (
     <div className="bg-gray-50 p-4 rounded-lg">
@@ -37,9 +34,6 @@ export const KanbanColumn = ({
               card={card}
               isSelected={card.id === selectedCardId}
               onSelect={onCardSelect}
-              onAnalyze={onAnalyze}
-              onApprove={onApprove}
-              onRequestCorrection={onRequestCorrection}
             />
           ))}
         </div>

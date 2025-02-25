@@ -1,0 +1,150 @@
+
+import { useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { KanbanCard, ChatMessage } from "@/types/kanban";
+
+interface KanbanCardModalProps {
+  card: KanbanCard;
+  onClose: () => void;
+  onAnalyze: (cardId: string) => void;
+  onApprove: (cardId: string) => void;
+  onRequestCorrection: (cardId: string) => void;
+  onSendMessage: (message: string) => void;
+}
+
+export const KanbanCardModal = ({
+  card,
+  onClose,
+  onAnalyze,
+  onApprove,
+  onRequestCorrection,
+  onSendMessage,
+}: KanbanCardModalProps) => {
+  const [newMessage, setNewMessage] = useState("");
+
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+    onSendMessage(newMessage);
+    setNewMessage("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-lg w-[800px] max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold">{card.title}</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="flex flex-1 min-h-0">
+          {/* Main content */}
+          <div className="flex-1 p-6 border-r overflow-y-auto">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-2">Informações da Solicitação</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Data:</strong> {new Date(card.timeCorrection.date).toLocaleDateString()}</p>
+                  <p><strong>Solicitante:</strong> {card.requesterName}</p>
+                  <div>
+                    <strong>Horários:</strong>
+                    {card.timeCorrection.times.map((time, index) => (
+                      <p key={index} className="ml-2">
+                        • {time.entrada} - {time.saida}
+                      </p>
+                    ))}
+                  </div>
+                  <p><strong>Justificativa:</strong> {card.timeCorrection.justification}</p>
+                  {card.timeCorrection.document && (
+                    <p><strong>Documento:</strong> {card.timeCorrection.document}</p>
+                  )}
+                </div>
+              </div>
+
+              {card.status === "requested" && (
+                <Button
+                  onClick={() => onAnalyze(card.id)}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  Iniciar Análise
+                </Button>
+              )}
+
+              {card.status === "inAnalysis" && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => onApprove(card.id)}
+                    className="flex-1"
+                    variant="default"
+                  >
+                    Aprovar
+                  </Button>
+                  <Button
+                    onClick={() => onRequestCorrection(card.id)}
+                    className="flex-1"
+                    variant="destructive"
+                  >
+                    Solicitar Correção
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Chat section */}
+          <div className="w-80 flex flex-col">
+            <div className="p-4 border-b">
+              <h3 className="font-medium">Conversas</h3>
+            </div>
+
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {card.chat?.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex flex-col ${
+                      message.isLeader ? "items-end" : "items-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.isLeader
+                          ? "bg-accent text-white"
+                          : "bg-muted"
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{message.userName}</p>
+                      <p className="text-sm">{message.message}</p>
+                      <span className="text-xs opacity-75">
+                        {message.timestamp.toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <div className="p-4 border-t">
+              <div className="flex gap-2">
+                <Textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="resize-none"
+                  rows={2}
+                />
+                <Button onClick={handleSendMessage}>Enviar</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

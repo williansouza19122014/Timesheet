@@ -2,8 +2,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
-import { KanbanChat } from "@/components/kanban/KanbanChat";
+import { KanbanCardModal } from "@/components/kanban/KanbanCardModal";
 import { mockData } from "@/data/mockKanbanData";
 import type { KanbanCard, KanbanColumn as IKanbanColumn } from "@/types/kanban";
 
@@ -35,6 +38,7 @@ const Kanban = () => {
   const cardId = searchParams.get("cardId");
   const [columns, setColumns] = useState<IKanbanColumn[]>(initialColumns);
   const [selectedCard, setSelectedCard] = useState<KanbanCard | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,6 +47,35 @@ const Kanban = () => {
       if (card) setSelectedCard(card);
     }
   }, [cardId]);
+
+  const filterCards = (query: string) => {
+    if (!query.trim()) {
+      setColumns(initialColumns);
+      return;
+    }
+
+    const searchTerm = query.toLowerCase();
+    const filteredColumns = initialColumns.map(column => ({
+      ...column,
+      cards: column.cards.filter(card => {
+        const searchableText = [
+          card.title,
+          card.description,
+          card.requesterName,
+          card.timeCorrection.justification,
+          ...(card.chat?.map(msg => `${msg.userName} ${msg.message}`) || [])
+        ].join(' ').toLowerCase();
+
+        return searchableText.includes(searchTerm);
+      })
+    }));
+
+    setColumns(filteredColumns);
+  };
+
+  useEffect(() => {
+    filterCards(searchQuery);
+  }, [searchQuery]);
 
   const moveCard = (cardId: string, fromStatus: IKanbanColumn["id"], toStatus: IKanbanColumn["id"]) => {
     setColumns(prev => {
@@ -68,6 +101,7 @@ const Kanban = () => {
       title: "Análise iniciada",
       description: "O cartão foi movido para análise"
     });
+    setSelectedCard(null);
   };
 
   const handleApprove = (cardId: string) => {
@@ -76,6 +110,7 @@ const Kanban = () => {
       title: "Solicitação aprovada",
       description: "A correção de horário foi aprovada"
     });
+    setSelectedCard(null);
   };
 
   const handleRequestCorrection = (cardId: string) => {
@@ -85,6 +120,7 @@ const Kanban = () => {
       title: "Correção necessária",
       description: "Uma correção foi solicitada"
     });
+    setSelectedCard(null);
   };
 
   const handleSendMessage = (message: string) => {
@@ -110,8 +146,29 @@ const Kanban = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-6 mb-8">
         <h1 className="text-4xl font-bold">Fluxo Kanban</h1>
+        
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar por texto, tags ou responsável..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {searchQuery && (
+            <Button
+              variant="outline"
+              onClick={() => setSearchQuery("")}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Limpar
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
@@ -129,10 +186,13 @@ const Kanban = () => {
       </div>
 
       {selectedCard && (
-        <KanbanChat
-          messages={selectedCard.chat}
-          onSendMessage={handleSendMessage}
+        <KanbanCardModal
+          card={selectedCard}
           onClose={() => setSelectedCard(null)}
+          onAnalyze={handleAnalyze}
+          onApprove={handleApprove}
+          onRequestCorrection={handleRequestCorrection}
+          onSendMessage={handleSendMessage}
         />
       )}
     </div>
