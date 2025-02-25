@@ -22,12 +22,13 @@ interface SystemUser {
 }
 
 const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
-  const [user, setUser] = useState<Partial<SystemUser>>(editingUser || {
-    name: "",
-    email: "",
-    hire_date: new Date().toISOString().split('T')[0],
-    termination_date: "",
-    status: 'active'
+  const [user, setUser] = useState<SystemUser>({
+    id: editingUser?.id || '',
+    name: editingUser?.name || "",
+    email: editingUser?.email || "",
+    hire_date: editingUser?.hire_date || new Date().toISOString().split('T')[0],
+    termination_date: editingUser?.termination_date || "",
+    status: editingUser?.status || 'active'
   });
   const [showTerminationConfirm, setShowTerminationConfirm] = useState(false);
   const { toast } = useToast();
@@ -87,7 +88,7 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
         termination_date: user.termination_date,
         status: user.termination_date ? 'inactive' : 'active'
       })
-      .eq('id', editingUser?.id);
+      .eq('id', user.id);
 
     if (error) throw error;
 
@@ -97,7 +98,7 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
         .update({
           end_date: user.termination_date
         })
-        .eq('user_id', editingUser?.id)
+        .eq('user_id', user.id)
         .is('end_date', null);
 
       if (projectError) throw projectError;
