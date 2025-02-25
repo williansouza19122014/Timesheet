@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { X, ArrowUpRight, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,9 +44,31 @@ export const KanbanCardModal = ({
     date: new Date(card.timeCorrection.date),
     totalHours: 6,
     projectHours: 8,
-    get difference() {
-      return this.projectHours - this.totalHours;
-    }
+    difference: 2,
+    projects: [
+      {
+        name: "Projeto A",
+        hours: 4,
+        details: [
+          { time: "09:00 - 11:00", duration: 2 },
+          { time: "14:00 - 16:00", duration: 2 }
+        ]
+      },
+      {
+        name: "Projeto B",
+        hours: 2,
+        details: [
+          { time: "11:00 - 13:00", duration: 2 }
+        ]
+      },
+      {
+        name: "Projeto C",
+        hours: 2,
+        details: [
+          { time: "16:00 - 18:00", duration: 2 }
+        ]
+      }
+    ]
   };
 
   const showEditOptions = card.status === "needsCorrection" && onEdit && onDelete;
