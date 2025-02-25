@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Building2, FileNumber, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Building2, FileText, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -109,7 +108,7 @@ const Register = () => {
                 CNPJ
               </label>
               <div className="relative">
-                <FileNumber className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <FileText className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                 <Input
                   id="cnpj"
                   value={formData.cnpj}
