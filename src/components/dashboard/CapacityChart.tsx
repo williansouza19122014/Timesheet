@@ -53,11 +53,15 @@ const CapacityChart = ({
       })()
     : data;
 
+  const formattedCurrentMonth = currentMonth 
+    ? currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1) 
+    : null;
+
   return (
     <div className="bg-white p-6 rounded-lg border shadow-sm mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">
-          Capacidade x Horas Realizadas {currentMonth && `(${currentMonth})`}
+          Capacidade x Horas Realizadas {formattedCurrentMonth && `(${formattedCurrentMonth})`}
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -98,9 +102,21 @@ const CapacityChart = ({
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey={selectedMonth !== undefined ? "day" : "month"}
-              tickFormatter={selectedMonth !== undefined ? (value) => `Dia ${value}` : undefined}
+              tickFormatter={selectedMonth !== undefined ? String : undefined}
+              label={{ 
+                value: selectedMonth !== undefined ? "Dia" : "Mês", 
+                position: "insideBottom", 
+                offset: -5 
+              }}
             />
-            <YAxis />
+            <YAxis 
+              label={{ 
+                value: "Horas", 
+                angle: -90, 
+                position: "insideLeft",
+                offset: 10
+              }}
+            />
             <Tooltip 
               labelFormatter={(label) => 
                 selectedMonth !== undefined 
