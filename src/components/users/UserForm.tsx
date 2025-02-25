@@ -1,17 +1,10 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import UserFormFields from "./UserFormFields";
+import UserFormActions from "./UserFormActions";
+import TerminationConfirmDialog from "./TerminationConfirmDialog";
 
 interface UserFormProps {
   onClose: () => void;
@@ -39,6 +32,10 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
   const [showTerminationConfirm, setShowTerminationConfirm] = useState(false);
   const { toast } = useToast();
 
+  const handleFieldChange = (field: string, value: string) => {
+    setUser(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -58,43 +55,9 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
           return;
         }
 
-        const { error } = await supabase
-          .from('system_users')
-          .update({
-            name: user.name,
-            email: user.email,
-            hire_date: user.hire_date,
-            termination_date: user.termination_date,
-            status: user.termination_date ? 'inactive' : 'active'
-          })
-          .eq('id', editingUser.id);
-
-        if (error) throw error;
-
-        // Se tem data de demissão, atualiza os projetos
-        if (user.termination_date) {
-          const { error: projectError } = await supabase
-            .from('project_members')
-            .update({
-              end_date: user.termination_date
-            })
-            .eq('user_id', editingUser.id)
-            .is('end_date', null);
-
-          if (projectError) throw projectError;
-        }
+        await updateUser();
       } else {
-        const { error } = await supabase
-          .from('system_users')
-          .insert([{
-            name: user.name,
-            email: user.email,
-            hire_date: user.hire_date,
-            termination_date: user.termination_date,
-            status: user.termination_date ? 'inactive' : 'active'
-          }]);
-
-        if (error) throw error;
+        await createUser();
       }
 
       toast({
@@ -114,20 +77,21 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
     }
   };
 
-  const handleConfirmTermination = async () => {
-    setShowTerminationConfirm(false);
-    try {
-      const { error } = await supabase
-        .from('system_users')
-        .update({
-          termination_date: user.termination_date,
-          status: 'inactive'
-        })
-        .eq('id', editingUser?.id);
+  const updateUser = async () => {
+    const { error } = await supabase
+      .from('system_users')
+      .update({
+        name: user.name,
+        email: user.email,
+        hire_date: user.hire_date,
+        termination_date: user.termination_date,
+        status: user.termination_date ? 'inactive' : 'active'
+      })
+      .eq('id', editingUser?.id);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Atualiza os projetos
+    if (user.termination_date) {
       const { error: projectError } = await supabase
         .from('project_members')
         .update({
@@ -137,7 +101,28 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
         .is('end_date', null);
 
       if (projectError) throw projectError;
+    }
+  };
 
+  const createUser = async () => {
+    const { error } = await supabase
+      .from('system_users')
+      .insert([{
+        name: user.name,
+        email: user.email,
+        hire_date: user.hire_date,
+        termination_date: user.termination_date,
+        status: user.termination_date ? 'inactive' : 'active'
+      }]);
+
+    if (error) throw error;
+  };
+
+  const handleConfirmTermination = async () => {
+    setShowTerminationConfirm(false);
+    try {
+      await updateUser();
+      
       toast({
         title: "Usuário desligado com sucesso",
         description: `${user.name} foi marcado como inativo`
@@ -163,93 +148,23 @@ const UserForm = ({ onClose, editingUser, onSuccess }: UserFormProps) => {
         </h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nome *</label>
-            <input
-              type="text"
-              value={user.name}
-              onChange={(e) => setUser({ ...user, name: e.target.value })}
-              className="w-full p-2 border rounded-lg"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Email *</label>
-            <input
-              type="email"
-              value={user.email}
-              onChange={(e) => setUser({ ...user, email: e.target.value })}
-              className="w-full p-2 border rounded-lg"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Data de Admissão *</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={user.hire_date}
-                  onChange={(e) => setUser({ ...user, hire_date: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
-                  required
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1">Data de Demissão</label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={user.termination_date}
-                  min={user.hire_date}
-                  onChange={(e) => setUser({ ...user, termination_date: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-            >
-              {editingUser ? 'Atualizar' : 'Salvar'}
-            </button>
-          </div>
+          <UserFormFields 
+            user={user}
+            onChange={handleFieldChange}
+          />
+          
+          <UserFormActions
+            isEditing={!!editingUser}
+            onCancel={onClose}
+          />
         </form>
       </div>
 
-      <AlertDialog open={showTerminationConfirm} onOpenChange={setShowTerminationConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Desligamento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao confirmar o desligamento, o usuário perderá acesso ao sistema e será removido de todos os projetos ativos.
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmTermination}>
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <TerminationConfirmDialog
+        open={showTerminationConfirm}
+        onOpenChange={setShowTerminationConfirm}
+        onConfirm={handleConfirmTermination}
+      />
     </div>
   );
 };
