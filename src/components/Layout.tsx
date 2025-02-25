@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { Clock, ChartBar, User, Users, Settings, LogOut, Building2, Home, Users as UsersIcon, ClipboardList, BarChart, LayoutIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import Inbox from "./notifications/Inbox";
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -104,6 +105,9 @@ const Layout = () => {
         }`}
       >
         <div className="container py-8">
+          <div className="absolute top-4 right-8">
+            <Inbox />
+          </div>
           <Outlet />
         </div>
       </main>
