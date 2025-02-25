@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Clock } from "lucide-react";
 
 interface Client {
   id: string;

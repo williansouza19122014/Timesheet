@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           cnpj: string
@@ -110,6 +131,83 @@ export type Database = {
           },
         ]
       }
+      project_time_entries: {
+        Row: {
+          created_at: string | null
+          hours: unknown
+          id: string
+          project_id: string
+          time_entry_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hours: unknown
+          id?: string
+          project_id: string
+          time_entry_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hours?: unknown
+          id?: string
+          project_id?: string
+          time_entry_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_time_entries_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string | null
@@ -200,6 +298,51 @@ export type Database = {
           notification_email?: string
           search_frequency?: string
           search_text?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          created_at: string | null
+          entrada1: string | null
+          entrada2: string | null
+          entrada3: string | null
+          entry_date: string
+          id: string
+          saida1: string | null
+          saida2: string | null
+          saida3: string | null
+          total_hours: unknown | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          entrada1?: string | null
+          entrada2?: string | null
+          entrada3?: string | null
+          entry_date: string
+          id?: string
+          saida1?: string | null
+          saida2?: string | null
+          saida3?: string | null
+          total_hours?: unknown | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          entrada1?: string | null
+          entrada2?: string | null
+          entrada3?: string | null
+          entry_date?: string
+          id?: string
+          saida1?: string | null
+          saida2?: string | null
+          saida3?: string | null
+          total_hours?: unknown | null
           updated_at?: string | null
           user_id?: string
         }
