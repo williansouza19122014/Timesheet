@@ -1,44 +1,41 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import Index from "./pages/Index";
-import TimeSheet from "./pages/TimeSheet";
-import Reports from "./pages/Reports";
-import Team from "./pages/Team";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import ApprovalRequests from "./pages/ApprovalRequests";
-import Clients from "./pages/Clients";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "@/components/Layout";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+import TimeTracking from "@/pages/TimeTracking";
+import Clients from "@/pages/Clients";
+import Team from "@/pages/Team";
+import Reports from "@/pages/Reports";
+import NotFound from "@/pages/NotFound";
+import Kanban from "@/pages/Kanban";
+import ApprovalRequests from "@/pages/ApprovalRequests";
+import "./App.css";
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/timesheet" element={<TimeSheet />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/approvals" element={<ApprovalRequests />} />
-            <Route path="/clients" element={<Clients />} />
-          </Route>
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Index />} />
+          <Route path="perfil" element={<Profile />} />
+          <Route path="configuracoes" element={<Settings />} />
+          <Route path="ponto" element={<TimeTracking />} />
+          <Route path="clientes" element={<Clients />} />
+          <Route path="equipe" element={<Team />} />
+          <Route path="relatorios" element={<Reports />} />
+          <Route path="kanban" element={<Kanban />} />
+          <Route path="aprovacoes" element={<ApprovalRequests />} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </Route>
+      </Routes>
+    </Router>
+  );
+}
 
 export default App;

@@ -1,118 +1,154 @@
 
-import { useState } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { Clock, ChartBar, User, Users, Settings, LogOut, Building2, Home, Users as UsersIcon, ClipboardList, BarChart, LayoutIcon, FileText } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Outlet, NavLink } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Clock,
+  Users,
+  Building2,
+  FileBarChart,
+  Settings,
+  UserCircle,
+  Bell,
+  KanbanSquare,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import Inbox from "./notifications/Inbox";
 
 const Layout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const location = useLocation();
-  const { toast } = useToast();
-
-  const navigationItems = [
-    { icon: Home, label: "Início", route: "/" },
-    { icon: FileText, label: "TimeSheet", route: "/timesheet" },
-    { icon: UsersIcon, label: "Equipe", route: "/team" },
-    { icon: Clock, label: "Horas", route: "/time-tracking" },
-    { icon: ClipboardList, label: "Clientes", route: "/clients" },
-    { icon: BarChart, label: "Relatórios", route: "/reports" },
-    { icon: LayoutIcon, label: "Kanban", route: "/kanban" },
-    { icon: Settings, label: "Configurações", route: "/settings" },
+  const navigation = [
+    {
+      name: "Dashboard",
+      href: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      name: "Ponto",
+      href: "/ponto",
+      icon: Clock,
+    },
+    {
+      name: "Kanban",
+      href: "/kanban",
+      icon: KanbanSquare,
+    },
+    {
+      name: "Clientes",
+      href: "/clientes",
+      icon: Building2,
+    },
+    {
+      name: "Equipe",
+      href: "/equipe",
+      icon: Users,
+    },
+    {
+      name: "Relatórios",
+      href: "/relatorios",
+      icon: FileBarChart,
+    },
   ];
 
-  const handleSignOut = async () => {
-    try {
-      toast({
-        description: "Logout realizado com sucesso",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao fazer logout",
-        description: "Por favor, tente novamente",
-      });
-    }
-  };
+  const secondaryNavigation = [
+    {
+      name: "Configurações",
+      href: "/configuracoes",
+      icon: Settings,
+    },
+    {
+      name: "Perfil",
+      href: "/perfil",
+      icon: UserCircle,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <aside
-        className={`fixed top-0 left-0 z-40 h-screen bg-white border-r transition-all duration-300 ${
-          isSidebarOpen ? "w-64" : "w-20"
-        }`}
-      >
-        <div className="h-full px-3 py-4 flex flex-col">
-          <div className="mb-10 flex items-center justify-between">
-            <span
-              className={`font-semibold text-xl ${!isSidebarOpen && "hidden"}`}
-            >
-              TimeTrack
-            </span>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-muted transition-smooth"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d={isSidebarOpen ? "M11 19l-7-7 7-7" : "M13 5l7 7-7 7"}
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <div className="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 bg-white border-r">
+          <div className="flex flex-col flex-1 gap-2">
+            <div className="flex h-16 items-center gap-2 px-6 border-b">
+              <img
+                src="/favicon.ico"
+                alt="Logo"
+                className="w-8 h-8"
+              />
+              <span className="text-xl font-semibold">Ponto Digital</span>
+            </div>
+
+            <nav className="flex flex-1 flex-col gap-1 p-4">
+              <div>
+                {navigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-colors hover:text-gray-900 hover:bg-gray-100",
+                        isActive && "bg-gray-100 text-gray-900"
+                      )
+                    }
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+
+              <div className="mt-auto space-y-1">
+                {secondaryNavigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-colors hover:text-gray-900 hover:bg-gray-100",
+                        isActive && "bg-gray-100 text-gray-900"
+                      )
+                    }
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="lg:pl-72 flex flex-1">
+          <div className="flex flex-1 flex-col">
+            {/* Top bar */}
+            <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-white px-6">
+              <h1 className="text-2xl font-semibold flex-1">Ponto Digital</h1>
+              
+              <div className="flex items-center gap-4">
+                <Inbox>
+                  <button
+                    type="button"
+                    className="rounded-full p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                  >
+                    <span className="sr-only">View notifications</span>
+                    <Bell className="h-6 w-6" />
+                  </button>
+                </Inbox>
+
+                <img
+                  className="inline-block h-8 w-8 rounded-full"
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                  alt="Profile"
                 />
-              </svg>
-            </button>
+              </div>
+            </header>
+
+            {/* Page content */}
+            <main className="flex-1 p-6">
+              <Outlet />
+            </main>
           </div>
-
-          <nav className="space-y-2 flex-1">
-            {navigationItems.map((item) => {
-              const isActive = location.pathname === item.route;
-              return (
-                <Link
-                  key={item.label}
-                  to={item.route}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
-                    isActive
-                      ? "bg-accent text-white"
-                      : "hover:bg-muted text-secondary hover:text-primary"
-                  }`}
-                >
-                  <item.icon className="w-6 h-6" />
-                  <span className={!isSidebarOpen ? "hidden" : ""}>
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="w-6 h-6" />
-            <span className={!isSidebarOpen ? "hidden" : ""}>Sair</span>
-          </button>
         </div>
-      </aside>
-
-      <main
-        className={`min-h-screen transition-all duration-300 ${
-          isSidebarOpen ? "ml-64" : "ml-20"
-        }`}
-      >
-        <div className="container py-8">
-          <div className="absolute top-4 right-8">
-            <Inbox />
-          </div>
-          <Outlet />
-        </div>
-      </main>
+      </div>
     </div>
   );
 };
