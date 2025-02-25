@@ -25,7 +25,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, resetLink }: ResetPasswordRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "TimeSheet <noreply@seudominio.com.br>",
+      from: "TimeSheet <onboarding@resend.dev>",
       to: [email],
       subject: "Recuperação de Senha - TimeSheet",
       html: `
