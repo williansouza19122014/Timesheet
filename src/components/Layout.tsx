@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Clock, ChartBar, User, Users, Settings, LogOut, Building2, Home, Users as UsersIcon, ClipboardList, BarChart, LayoutIcon } from "lucide-react";
+import { Clock, ChartBar, User, Users, Settings, LogOut, Building2, Home, Users as UsersIcon, ClipboardList, BarChart, LayoutIcon, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Inbox from "./notifications/Inbox";
 
@@ -11,6 +12,7 @@ const Layout = () => {
 
   const navigationItems = [
     { icon: Home, label: "Início", route: "/" },
+    { icon: FileText, label: "TimeSheet", route: "/timesheet" },
     { icon: UsersIcon, label: "Equipe", route: "/team" },
     { icon: Clock, label: "Horas", route: "/time-tracking" },
     { icon: ClipboardList, label: "Clientes", route: "/clients" },
