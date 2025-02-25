@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 interface KanbanCard {
   id: string;
@@ -27,32 +28,94 @@ interface KanbanColumn {
   cards: KanbanCard[];
 }
 
+const mockData: KanbanCard[] = [
+  {
+    id: "1",
+    title: "Correção de Horário - João Silva",
+    description: "Solicitação de correção de horário do dia 15/04",
+    status: "requested",
+    date: new Date(),
+    requesterId: "1",
+    requesterName: "João Silva",
+    timeCorrection: {
+      date: "2024-04-15",
+      times: [
+        { entrada: "08:00", saida: "12:00" },
+        { entrada: "13:00", saida: "17:00" }
+      ],
+      justification: "Esqueci de registrar a entrada",
+      document: "atestado.pdf"
+    }
+  },
+  {
+    id: "2",
+    title: "Correção de Horário - Maria Santos",
+    description: "Correção necessária no registro do dia 14/04",
+    status: "needsCorrection",
+    date: new Date(),
+    requesterId: "2",
+    requesterName: "Maria Santos",
+    timeCorrection: {
+      date: "2024-04-14",
+      times: [
+        { entrada: "09:00", saida: "18:00" }
+      ],
+      justification: "Sistema fora do ar"
+    }
+  }
+];
+
 const initialColumns: KanbanColumn[] = [
   {
     id: "requested",
     title: "Solicitadas",
-    cards: []
+    cards: mockData.filter(card => card.status === "requested")
   },
   {
     id: "inAnalysis",
     title: "Em Análise pelo Líder",
-    cards: []
+    cards: mockData.filter(card => card.status === "inAnalysis")
   },
   {
     id: "needsCorrection",
     title: "Correções Necessárias",
-    cards: []
+    cards: mockData.filter(card => card.status === "needsCorrection")
   },
   {
     id: "approved",
     title: "Histórico de Aprovações",
-    cards: []
+    cards: mockData.filter(card => card.status === "approved")
   }
 ];
 
 const Kanban = () => {
   const [columns, setColumns] = useState<KanbanColumn[]>(initialColumns);
   const { toast } = useToast();
+
+  const handleAnalyze = (cardId: string) => {
+    moveCard(cardId, "requested", "inAnalysis");
+    toast({
+      title: "Análise iniciada",
+      description: "O cartão foi movido para análise"
+    });
+  };
+
+  const handleApprove = (cardId: string) => {
+    moveCard(cardId, "inAnalysis", "approved");
+    toast({
+      title: "Solicitação aprovada",
+      description: "A correção de horário foi aprovada"
+    });
+  };
+
+  const handleRequestCorrection = (cardId: string) => {
+    moveCard(cardId, "inAnalysis", "needsCorrection");
+    toast({
+      variant: "destructive",
+      title: "Correção necessária",
+      description: "Uma correção foi solicitada"
+    });
+  };
 
   const moveCard = (cardId: string, fromStatus: KanbanColumn["id"], toStatus: KanbanColumn["id"]) => {
     setColumns(prev => {
@@ -70,12 +133,6 @@ const Kanban = () => {
 
       return newColumns;
     });
-
-    // Notify about status change
-    toast({
-      title: "Status atualizado",
-      description: `Cartão movido para ${columns.find(col => col.id === toStatus)?.title}`
-    });
   };
 
   return (
@@ -90,55 +147,56 @@ const Kanban = () => {
             key={column.id}
             className="bg-gray-50 p-4 rounded-lg"
           >
-            <h2 className="font-medium mb-4 flex items-center justify-between">
-              <span>{column.title}</span>
-              <span className="text-sm text-muted-foreground">
-                ({column.cards.length})
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-medium">{column.title}</h2>
+              <span className="text-sm text-muted-foreground bg-white px-2 py-1 rounded">
+                {column.cards.length}
               </span>
-            </h2>
+            </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               {column.cards.map(card => (
                 <div
                   key={card.id}
-                  className={`bg-white p-4 rounded-lg shadow-sm ${
-                    card.status === "needsCorrection" ? "bg-red-50 border-red-200" : ""
+                  className={`bg-white p-4 rounded-lg shadow-sm border ${
+                    card.status === "needsCorrection" 
+                      ? "border-red-200 bg-red-50" 
+                      : "border-transparent"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-start justify-between mb-2">
                     <h3 className="font-medium">{card.title}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {card.date.toLocaleDateString()}
-                    </span>
+                    {card.status === "needsCorrection" && (
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                    )}
                   </div>
                   
                   <p className="text-sm text-muted-foreground mb-3">
                     {card.description}
                   </p>
 
-                  <div className="space-y-2">
-                    <p className="text-sm">
-                      <strong>Data da Correção:</strong> {card.timeCorrection.date}
-                    </p>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Data:</strong> {new Date(card.timeCorrection.date).toLocaleDateString()}</p>
                     <div>
-                      <strong className="text-sm">Horários:</strong>
+                      <strong>Horários:</strong>
                       {card.timeCorrection.times.map((time, index) => (
-                        <p key={index} className="text-sm">
-                          {index + 1}º: {time.entrada} - {time.saida}
+                        <p key={index} className="ml-2">
+                          • {time.entrada} - {time.saida}
                         </p>
                       ))}
                     </div>
+                    <p><strong>Justificativa:</strong> {card.timeCorrection.justification}</p>
                     {card.timeCorrection.document && (
-                      <p className="text-sm">
-                        <strong>Documento:</strong> Anexado
+                      <p>
+                        <strong>Documento:</strong> {card.timeCorrection.document}
                       </p>
                     )}
                   </div>
 
                   {card.status === "requested" && (
                     <button
-                      onClick={() => moveCard(card.id, "requested", "inAnalysis")}
-                      className="mt-3 w-full px-3 py-1 bg-accent text-white rounded text-sm hover:bg-accent/90 transition-colors"
+                      onClick={() => handleAnalyze(card.id)}
+                      className="mt-3 w-full px-3 py-2 bg-accent text-white rounded text-sm hover:bg-accent/90 transition-colors"
                     >
                       Iniciar Análise
                     </button>
@@ -147,14 +205,14 @@ const Kanban = () => {
                   {card.status === "inAnalysis" && (
                     <div className="flex gap-2 mt-3">
                       <button
-                        onClick={() => moveCard(card.id, "inAnalysis", "approved")}
-                        className="flex-1 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                        onClick={() => handleApprove(card.id)}
+                        className="flex-1 px-3 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
                       >
                         Aprovar
                       </button>
                       <button
-                        onClick={() => moveCard(card.id, "inAnalysis", "needsCorrection")}
-                        className="flex-1 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+                        onClick={() => handleRequestCorrection(card.id)}
+                        className="flex-1 px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
                       >
                         Solicitar Correção
                       </button>
@@ -162,7 +220,7 @@ const Kanban = () => {
                   )}
 
                   {card.status === "needsCorrection" && (
-                    <div className="mt-3 p-2 bg-red-100 rounded text-sm text-red-700">
+                    <div className="mt-3 p-2 bg-red-100 rounded text-sm text-red-700 font-medium">
                       Aguardando correção do colaborador
                     </div>
                   )}
