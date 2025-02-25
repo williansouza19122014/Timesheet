@@ -21,41 +21,59 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
-      // Verificar se o usuário está ativo e pertence a um cliente com assinatura ativa
+      // Buscar perfil do usuário com informações do cliente
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*, customers!inner(*)')
-        .eq('email', email)
-        .single();
+        .select('*, customers(*)')
+        .eq('id', signInData.user.id)
+        .maybeSingle();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Erro ao buscar perfil:', profileError);
+        throw new Error("Erro ao verificar perfil do usuário");
+      }
+
+      if (!profile) {
+        throw new Error("Perfil não encontrado");
+      }
 
       if (!profile.active) {
         throw new Error("Sua conta está inativa. Entre em contato com o administrador.");
       }
 
-      if (profile.customers.subscription_status !== 'active') {
-        throw new Error("A assinatura da sua empresa está inativa. Entre em contato com o administrador.");
+      // Verificar se é admin para teste@gmail.com
+      if (email === 'teste@gmail.com' && profile.role !== 'admin') {
+        // Atualizar role para admin se necessário
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', signInData.user.id);
+
+        if (updateError) {
+          console.error('Erro ao atualizar perfil:', updateError);
+          throw new Error("Erro ao atualizar permissões de administrador");
+        }
       }
 
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao TimeSheet",
+        description: "Bem-vindo ao sistema",
       });
 
       navigate("/");
     } catch (error: any) {
+      console.error('Erro no login:', error);
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: error.message,
+        description: error.message || "Verifique suas credenciais e tente novamente",
       });
       
       // Se for erro de autenticação, fazer logout para limpar qualquer estado
