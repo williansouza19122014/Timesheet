@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Building2, FileText, Loader2, Eye, EyeOff } from "lucide-react";
@@ -23,7 +24,25 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // 1. Criar cliente
+      // 1. Criar usuário no auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            company_name: formData.companyName,
+            cnpj: formData.cnpj,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error("Erro ao criar usuário");
+      }
+
+      // 2. Criar cliente
       const { data: customer, error: customerError } = await supabase
         .from('customers')
         .insert([
@@ -38,14 +57,6 @@ const Register = () => {
 
       if (customerError) throw customerError;
 
-      // 2. Criar usuário no auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) throw authError;
-
       // 3. Atualizar perfil do usuário
       const { error: profileError } = await supabase
         .from('profiles')
@@ -53,7 +64,7 @@ const Register = () => {
           role: 'admin',
           customer_id: customer.id,
         })
-        .eq('id', authData.user!.id);
+        .eq('id', authData.user.id);
 
       if (profileError) throw profileError;
 
@@ -62,12 +73,17 @@ const Register = () => {
         description: "Você já pode fazer login no sistema.",
       });
 
+      // 4. Fazer logout para garantir estado limpo
+      await supabase.auth.signOut();
+      
+      // 5. Redirecionar para login
       navigate("/login");
     } catch (error: any) {
+      console.error('Erro no registro:', error);
       toast({
         variant: "destructive",
         title: "Erro ao criar conta",
-        description: error.message,
+        description: error.message || "Ocorreu um erro ao criar sua conta.",
       });
     } finally {
       setIsLoading(false);
