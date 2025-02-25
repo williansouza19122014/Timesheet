@@ -131,6 +131,57 @@ export type Database = {
           },
         ]
       }
+      project_members: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          is_leader: boolean | null
+          project_id: string | null
+          role: string
+          start_date: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_leader?: boolean | null
+          project_id?: string | null
+          role: string
+          start_date: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_leader?: boolean | null
+          project_id?: string | null
+          role?: string
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_time_entries: {
         Row: {
           created_at: string | null
@@ -303,6 +354,42 @@ export type Database = {
         }
         Relationships: []
       }
+      system_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          hire_date: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["user_status"] | null
+          termination_date: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          hire_date: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["user_status"] | null
+          termination_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          hire_date?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["user_status"] | null
+          termination_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           created_at: string | null
@@ -358,6 +445,7 @@ export type Database = {
     Enums: {
       subscription_status: "active" | "inactive" | "pending" | "cancelled"
       user_role: "admin" | "user"
+      user_status: "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
