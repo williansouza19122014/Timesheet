@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -97,12 +98,15 @@ const Kanban = () => {
   const handleCardSelect = (card: KanbanCard) => {
     if (card.status === "requested") {
       moveCard(card.id, "requested", "inAnalysis");
+      const updatedCard = { ...card, status: "inAnalysis" as const };
+      setSelectedCard(updatedCard);
       toast({
         title: "Tarefa em análise!",
         description: "O cartão foi movido automaticamente para análise"
       });
+    } else {
+      setSelectedCard(card);
     }
-    setSelectedCard(card);
   };
 
   const handleEditCard = (cardId: string) => {
