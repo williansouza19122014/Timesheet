@@ -1,6 +1,7 @@
 
 import { Check } from "lucide-react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import type { Notification } from "@/types/dashboard";
 
 interface NotificationsListProps {
@@ -9,12 +10,20 @@ interface NotificationsListProps {
 }
 
 const NotificationsList = ({ notifications, onMarkAsRead }: NotificationsListProps) => {
+  const navigate = useNavigate();
+
   const getNotificationColor = (type: Notification["type"]) => {
     switch (type) {
       case "success": return "text-green-500";
       case "warning": return "text-yellow-500";
       case "error": return "text-red-500";
       default: return "text-blue-500";
+    }
+  };
+
+  const handleCardClick = (notification: Notification) => {
+    if (notification.type === "warning" || notification.type === "info") {
+      navigate(`/kanban?cardId=${notification.id}`);
     }
   };
 
@@ -33,7 +42,8 @@ const NotificationsList = ({ notifications, onMarkAsRead }: NotificationsListPro
             key={notification.id}
             className={`p-3 rounded-lg border ${
               notification.read ? 'bg-gray-50' : 'bg-white'
-            }`}
+            } ${(notification.type === "warning" || notification.type === "info") ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+            onClick={() => handleCardClick(notification)}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -47,7 +57,10 @@ const NotificationsList = ({ notifications, onMarkAsRead }: NotificationsListPro
               </div>
               {!notification.read && (
                 <button
-                  onClick={() => onMarkAsRead(notification.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMarkAsRead(notification.id);
+                  }}
                   className="text-accent hover:text-accent/80 transition-colors"
                   title="Marcar como lida"
                 >
