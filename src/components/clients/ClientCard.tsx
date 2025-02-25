@@ -15,6 +15,7 @@ interface ClientCardProps {
   onCancelProjectForm: () => void;
   onShowTeamForm: (projectId: string) => void;
   onAddTeamMember: (projectId: string, member: TeamMember, isLeader: boolean) => void;
+  onEditTeamMember: (projectId: string, memberId: string, endDate: string) => void;
   onRemoveTeamMember: (projectId: string, memberId: string) => void;
   onEdit: () => void;
 }
@@ -30,6 +31,7 @@ const ClientCard = ({
   onCancelProjectForm,
   onShowTeamForm,
   onAddTeamMember,
+  onEditTeamMember,
   onRemoveTeamMember,
   onEdit
 }: ClientCardProps) => {
@@ -107,12 +109,8 @@ const ClientCard = ({
                 project={project}
                 showTeamForm={showTeamForm === project.id}
                 onShowTeamForm={() => onShowTeamForm(project.id)}
-                onAddTeamMember={(member) => onAddTeamMember(
-                  project.id,
-                  member,
-                  !project.leader && member.isLeader
-                )}
-                onRemoveTeamMember={(memberId) => onRemoveTeamMember(project.id, memberId)}
+                onAddTeamMember={(member) => onAddTeamMember(project.id, member, !project.leader && member.isLeader)}
+                onEditTeamMember={(memberId, endDate) => onEditTeamMember(project.id, memberId, endDate)}
               />
             ))}
             {client.projects.length === 0 && (
