@@ -1,11 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { addMonths, subMonths, getDaysInMonth, startOfMonth, format } from "date-fns";
 import TimeEntryActions from "@/components/time-tracking/TimeEntryActions";
 import MonthNavigation from "@/components/time-tracking/MonthNavigation";
 import TimeEntryTable from "@/components/time-tracking/TimeEntryTable";
 import RequestTimeCorrection from "@/components/RequestTimeCorrection";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TimeEntry {
   entrada1: string;
@@ -35,6 +37,19 @@ interface Project {
   description: string;
 }
 
+interface DatabaseTimeEntry {
+  id: string;
+  user_id: string;
+  entry_date: string;
+  entrada1: string | null;
+  saida1: string | null;
+  entrada2: string | null;
+  saida2: string | null;
+  entrada3: string | null;
+  saida3: string | null;
+  total_hours: string;
+}
+
 const TimeTracking = () => {
   const diasSemana = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
@@ -42,10 +57,93 @@ const TimeTracking = () => {
   const [lastRecordTime, setLastRecordTime] = useState<Date | null>(null);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [clients] = useState<Client[]>([]); // Initialize empty clients array
+  const [clients, setClients] = useState<Client[]>([]);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleRegisterTime = () => {
+  // Carregar registros do mês selecionado
+  useEffect(() => {
+    const fetchTimeEntries = async () => {
+      try {
+        const startDate = startOfMonth(selectedMonth);
+        const endDate = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
+        
+        const { data: timeEntries, error } = await supabase
+          .from('time_entries')
+          .select('*')
+          .eq('user_id', user?.id)
+          .gte('entry_date', startDate.toISOString())
+          .lte('entry_date', endDate.toISOString());
+
+        if (error) throw error;
+
+        const formattedEntries: { [key: string]: TimeEntry } = {};
+        timeEntries?.forEach((entry: DatabaseTimeEntry) => {
+          formattedEntries[entry.entry_date] = {
+            entrada1: entry.entrada1 || "",
+            saida1: entry.saida1 || "",
+            entrada2: entry.entrada2 || "",
+            saida2: entry.saida2 || "",
+            entrada3: entry.entrada3 || "",
+            saida3: entry.saida3 || "",
+            totalHoras: entry.total_hours?.split('hours')[0]?.trim() || "00:00",
+            projetos: []
+          };
+        });
+
+        setEntries(formattedEntries);
+      } catch (error: any) {
+        console.error('Erro ao carregar registros:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar registros",
+          description: error.message
+        });
+      }
+    };
+
+    // Carregar clientes e projetos
+    const fetchClients = async () => {
+      try {
+        const { data: clientsData, error: clientsError } = await supabase
+          .from('clients')
+          .select(`
+            *,
+            projects (
+              id,
+              name,
+              description
+            )
+          `);
+
+        if (clientsError) throw clientsError;
+        setClients(clientsData || []);
+      } catch (error: any) {
+        console.error('Erro ao carregar clientes:', error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar clientes",
+          description: error.message
+        });
+      }
+    };
+
+    if (user?.id) {
+      fetchTimeEntries();
+      fetchClients();
+    }
+  }, [selectedMonth, user?.id, toast]);
+
+  const handleRegisterTime = async () => {
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Usuário não autenticado"
+      });
+      return;
+    }
+
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     
@@ -60,45 +158,77 @@ const TimeTracking = () => {
 
     const currentHour = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
-    const entry = entries[today] || {
-      entrada1: "", saida1: "",
-      entrada2: "", saida2: "",
-      entrada3: "", saida3: "",
-      totalHoras: "00:00",
-      projetos: []
-    };
+    try {
+      const entry = entries[today] || {
+        entrada1: "", saida1: "",
+        entrada2: "", saida2: "",
+        entrada3: "", saida3: "",
+        totalHoras: "00:00",
+        projetos: []
+      };
 
-    let fieldToUpdate = "";
-    if (!entry.entrada1) fieldToUpdate = "entrada1";
-    else if (!entry.saida1) fieldToUpdate = "saida1";
-    else if (!entry.entrada2) fieldToUpdate = "entrada2";
-    else if (!entry.saida2) fieldToUpdate = "saida2";
-    else if (!entry.entrada3) fieldToUpdate = "entrada3";
-    else if (!entry.saida3) fieldToUpdate = "saida3";
-    else {
+      let fieldToUpdate = "";
+      if (!entry.entrada1) fieldToUpdate = "entrada1";
+      else if (!entry.saida1) fieldToUpdate = "saida1";
+      else if (!entry.entrada2) fieldToUpdate = "entrada2";
+      else if (!entry.saida2) fieldToUpdate = "saida2";
+      else if (!entry.entrada3) fieldToUpdate = "entrada3";
+      else if (!entry.saida3) fieldToUpdate = "saida3";
+      else {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Todos os registros do dia já foram feitos"
+        });
+        return;
+      }
+
+      const updatedEntry = {
+        ...entry,
+        [fieldToUpdate]: currentHour
+      };
+
+      const totalHours = calculateTotalHours(today, fieldToUpdate, currentHour);
+      updatedEntry.totalHoras = totalHours;
+
+      // Salvar no banco de dados
+      const { error } = await supabase
+        .from('time_entries')
+        .upsert({
+          user_id: user.id,
+          entry_date: today,
+          entrada1: updatedEntry.entrada1 || null,
+          saida1: updatedEntry.saida1 || null,
+          entrada2: updatedEntry.entrada2 || null,
+          saida2: updatedEntry.saida2 || null,
+          entrada3: updatedEntry.entrada3 || null,
+          saida3: updatedEntry.saida3 || null,
+          total_hours: totalHours
+        }, {
+          onConflict: 'user_id,entry_date'
+        });
+
+      if (error) throw error;
+
+      setEntries(prev => ({
+        ...prev,
+        [today]: updatedEntry
+      }));
+
+      setLastRecordTime(now);
+      
+      toast({
+        title: "Horário registrado",
+        description: `${fieldToUpdate.replace(/\d+/g, ' ')} - ${currentHour}`
+      });
+    } catch (error: any) {
+      console.error('Erro ao registrar horário:', error);
       toast({
         variant: "destructive",
-        title: "Erro",
-        description: "Todos os registros do dia já foram feitos"
+        title: "Erro ao registrar horário",
+        description: error.message
       });
-      return;
     }
-
-    setEntries(prev => ({
-      ...prev,
-      [today]: {
-        ...entry,
-        [fieldToUpdate]: currentHour,
-        totalHoras: calculateTotalHours(today, fieldToUpdate, currentHour)
-      }
-    }));
-
-    setLastRecordTime(now);
-    
-    toast({
-      title: "Horário registrado",
-      description: `${fieldToUpdate.replace(/\d+/g, ' ')} - ${currentHour}`
-    });
   };
 
   const calculateTotalHours = (date: string, field: string, newValue: string): string => {
