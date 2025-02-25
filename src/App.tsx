@@ -9,6 +9,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import TimeTracking from "@/pages/TimeTracking";
 import Clients from "@/pages/Clients";
+import Users from "@/pages/Users";
 import Team from "@/pages/Team";
 import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
@@ -35,6 +36,7 @@ function App() {
           <Route path="configuracoes" element={<Settings />} />
           <Route path="ponto" element={<TimeTracking />} />
           <Route path="clientes" element={<Clients />} />
+          <Route path="usuarios" element={<Users />} />
           <Route path="equipe" element={<Team />} />
           <Route path="relatorios" element={<Reports />} />
           <Route path="kanban" element={<Kanban />} />
