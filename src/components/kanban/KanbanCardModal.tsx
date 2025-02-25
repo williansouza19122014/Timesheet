@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { X, ArrowUpRight } from "lucide-react";
+import { X, ArrowUpRight, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,8 @@ interface KanbanCardModalProps {
   onRequestCorrection: (cardId: string) => void;
   onRequestReanalysis: (cardId: string) => void;
   onSendMessage: (message: string) => void;
+  onEdit?: (cardId: string) => void;
+  onDelete?: (cardId: string) => void;
 }
 
 export const KanbanCardModal = ({
@@ -22,6 +24,8 @@ export const KanbanCardModal = ({
   onRequestCorrection,
   onRequestReanalysis,
   onSendMessage,
+  onEdit,
+  onDelete,
 }: KanbanCardModalProps) => {
   const [newMessage, setNewMessage] = useState("");
 
@@ -31,12 +35,18 @@ export const KanbanCardModal = ({
     setNewMessage("");
   };
 
-  // Simulated hours data (replace with real data in production)
+  // Simulated hours data for the specific date (replace with real data in production)
   const hoursData = {
-    totalHours: 8,
-    projectHours: 40,
-    difference: -32
+    date: new Date(card.timeCorrection.date),
+    totalHours: 6, // Example: hours worked on that specific date
+    projectHours: 8, // Example: expected hours for that date
+    get difference() {
+      return this.projectHours - this.totalHours;
+    }
   };
+
+  const showEditOptions = card.status === "needsCorrection" && onEdit && onDelete;
+  const showApprovalActions = card.status === "inAnalysis";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -44,9 +54,29 @@ export const KanbanCardModal = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">{card.title}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {showEditOptions && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onEdit(card.id)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => onDelete(card.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-1 min-h-0">
@@ -55,20 +85,22 @@ export const KanbanCardModal = ({
             <div className="space-y-6">
               {/* Hours comparison panel */}
               <div className="bg-gray-50 p-4 rounded-lg border">
-                <h3 className="font-medium mb-3">Comparativo de Horas</h3>
+                <h3 className="font-medium mb-3">
+                  Comparativo de Horas - {hoursData.date.toLocaleDateString()}
+                </h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span>Total de horas registradas:</span>
+                    <span>Total de horas trabalhadas:</span>
                     <span className="font-medium">{hoursData.totalHours}h</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>Total de horas planejadas:</span>
+                    <span>Total de horas em projetos:</span>
                     <span className="font-medium">{hoursData.projectHours}h</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
                     <span>Diferença:</span>
-                    <span className={`font-medium ${hoursData.difference < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                      {hoursData.difference < 0 ? 'Faltam' : 'Excedeu'} {Math.abs(hoursData.difference)}h
+                    <span className={`font-medium ${hoursData.difference > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                      {hoursData.difference > 0 ? 'Faltam' : 'Excedeu'} {Math.abs(hoursData.difference)}h
                     </span>
                   </div>
                 </div>
@@ -94,7 +126,7 @@ export const KanbanCardModal = ({
                 </div>
               </div>
 
-              {card.status === "inAnalysis" && (
+              {showApprovalActions && (
                 <div className="flex gap-2">
                   <Button
                     onClick={() => onApprove(card.id)}

@@ -105,6 +105,27 @@ const Kanban = () => {
     setSelectedCard(card);
   };
 
+  const handleEditCard = (cardId: string) => {
+    toast({
+      title: "Editar solicitação",
+      description: "Implementar edição da solicitação"
+    });
+  };
+
+  const handleDeleteCard = (cardId: string) => {
+    setColumns(prev => {
+      return prev.map(column => ({
+        ...column,
+        cards: column.cards.filter(card => card.id !== cardId)
+      }));
+    });
+    setSelectedCard(null);
+    toast({
+      title: "Solicitação excluída",
+      description: "A solicitação foi removida com sucesso"
+    });
+  };
+
   const handleAnalyze = (cardId: string) => {
     moveCard(cardId, "requested", "inAnalysis");
     toast({
@@ -212,6 +233,8 @@ const Kanban = () => {
           onRequestCorrection={handleRequestCorrection}
           onRequestReanalysis={handleRequestReanalysis}
           onSendMessage={handleSendMessage}
+          onEdit={handleEditCard}
+          onDelete={handleDeleteCard}
         />
       )}
     </div>
