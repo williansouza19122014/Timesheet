@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
-import TimeTracking from "./pages/TimeTracking";
+import Index from "./pages/Index";
 import TimeSheet from "./pages/TimeSheet";
 import Reports from "./pages/Reports";
 import Team from "./pages/Team";
@@ -25,7 +25,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<TimeTracking />} />
+            <Route path="/" element={<Index />} />
             <Route path="/timesheet" element={<TimeSheet />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/team" element={<Team />} />
