@@ -61,21 +61,18 @@ const ProjectTeamMember = ({
         </button>
       </div>
       
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div className="flex justify-between items-center">
+        <div className="font-medium">{name}</div>
+        <div className="text-sm text-muted-foreground">{email}</div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
         <div>
-          <span className="text-sm text-muted-foreground">Nome:</span>
-          <p className="font-medium">{name}</p>
-        </div>
-        <div>
-          <span className="text-sm text-muted-foreground">Email:</span>
-          <p className="text-sm">{email}</p>
-        </div>
-        <div>
-          <span className="text-sm text-muted-foreground">Início no Projeto:</span>
+          <span className="text-sm text-muted-foreground">Início:</span>
           <p className="text-sm">{new Date(startDate).toLocaleDateString()}</p>
         </div>
         <div>
-          <span className="text-sm text-muted-foreground">Fim no Projeto:</span>
+          <span className="text-sm text-muted-foreground">Fim:</span>
           {isEditing ? (
             <input
               type="date"
@@ -89,11 +86,10 @@ const ProjectTeamMember = ({
             </p>
           )}
         </div>
-      </div>
-      
-      <div>
-        <span className="text-sm text-muted-foreground">Cargo/Função:</span>
-        <p className="text-sm">{role}</p>
+        <div>
+          <span className="text-sm text-muted-foreground">Cargo:</span>
+          <p className="text-sm">{role}</p>
+        </div>
       </div>
     </div>
   );

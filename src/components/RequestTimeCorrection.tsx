@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Clock } from "lucide-react";
+import { Clock, Upload } from "lucide-react";
 
 interface RequestTimeCorrectionProps {
   isOpen: boolean;
@@ -17,6 +17,7 @@ const RequestTimeCorrection = ({ isOpen, onClose }: RequestTimeCorrectionProps) 
   const [entrada3, setEntrada3] = useState("");
   const [saida3, setSaida3] = useState("");
   const [justification, setJustification] = useState("");
+  const [document, setDocument] = useState<File | null>(null);
   const { toast } = useToast();
 
   if (!isOpen) return null;
@@ -24,18 +25,31 @@ const RequestTimeCorrection = ({ isOpen, onClose }: RequestTimeCorrectionProps) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar se todos os campos estão preenchidos
-    if (!date || !entrada1 || !saida1 || !entrada2 || !saida2 || !entrada3 || !saida3 || !justification) {
+    // Validar campos obrigatórios
+    if (!date || !justification) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Todos os campos são obrigatórios"
+        description: "Data e justificativa são campos obrigatórios"
+      });
+      return;
+    }
+
+    // Validar se pelo menos um par de horários foi preenchido
+    const hasAtLeastOneTime = (entrada1 && saida1) || 
+                             (entrada2 && saida2) || 
+                             (entrada3 && saida3);
+
+    if (!hasAtLeastOneTime) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Informe pelo menos um par de horários (entrada e saída)"
       });
       return;
     }
 
     // Enviar solicitação
-    // TODO: Implementar lógica de envio
     toast({
       title: "Solicitação enviada",
       description: "Sua solicitação será analisada pelo líder"
@@ -50,79 +64,114 @@ const RequestTimeCorrection = ({ isOpen, onClose }: RequestTimeCorrectionProps) 
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Data</label>
+            <label className="block text-sm font-medium mb-1">Data *</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="w-full p-2 border rounded-lg"
+              required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Entrada 1</label>
-              <input
-                type="time"
-                value={entrada1}
-                onChange={(e) => setEntrada1(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Entrada 1</label>
+                <input
+                  type="time"
+                  value={entrada1}
+                  onChange={(e) => setEntrada1(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Saída 1</label>
+                <input
+                  type="time"
+                  value={saida1}
+                  onChange={(e) => setSaida1(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Saída 1</label>
-              <input
-                type="time"
-                value={saida1}
-                onChange={(e) => setSaida1(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Entrada 2</label>
+                <input
+                  type="time"
+                  value={entrada2}
+                  onChange={(e) => setEntrada2(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Saída 2</label>
+                <input
+                  type="time"
+                  value={saida2}
+                  onChange={(e) => setSaida2(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Entrada 2</label>
-              <input
-                type="time"
-                value={entrada2}
-                onChange={(e) => setEntrada2(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Saída 2</label>
-              <input
-                type="time"
-                value={saida2}
-                onChange={(e) => setSaida2(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Entrada 3</label>
-              <input
-                type="time"
-                value={entrada3}
-                onChange={(e) => setEntrada3(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Saída 3</label>
-              <input
-                type="time"
-                value={saida3}
-                onChange={(e) => setSaida3(e.target.value)}
-                className="w-full p-2 border rounded-lg"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Entrada 3</label>
+                <input
+                  type="time"
+                  value={entrada3}
+                  onChange={(e) => setEntrada3(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Saída 3</label>
+                <input
+                  type="time"
+                  value={saida3}
+                  onChange={(e) => setSaida3(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Justificativa</label>
+            <label className="block text-sm font-medium mb-1">Comprovante (Atestado)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                onChange={(e) => setDocument(e.target.files?.[0] || null)}
+                className="hidden"
+                id="document"
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+              <label
+                htmlFor="document"
+                className="flex items-center gap-2 px-4 py-2 border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors cursor-pointer"
+              >
+                <Upload className="w-4 h-4" />
+                Anexar documento
+              </label>
+              {document && (
+                <span className="text-sm text-muted-foreground">
+                  {document.name}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Justificativa *</label>
             <textarea
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               className="w-full p-2 border rounded-lg h-32"
               placeholder="Digite sua justificativa..."
+              required
             />
           </div>
 

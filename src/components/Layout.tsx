@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Clock, ChartBar, User, Users, Settings, LogOut, Building2 } from "lucide-react";
+import { Clock, ChartBar, User, Users, Settings, LogOut, Building2, Home, Users as UsersIcon, ClipboardList, BarChart, LayoutIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Layout = () => {
@@ -9,13 +8,14 @@ const Layout = () => {
   const location = useLocation();
   const { toast } = useToast();
 
-  const navigation = [
-    { name: "Time Tracking", href: "/", icon: Clock },
-    { name: "Clients and Projects", href: "/clients", icon: Building2 },
-    { name: "Reports", href: "/reports", icon: ChartBar },
-    { name: "Team", href: "/team", icon: Users },
-    { name: "Profile", href: "/profile", icon: User },
-    { name: "Settings", href: "/settings", icon: Settings },
+  const navigationItems = [
+    { icon: Home, label: "Início", route: "/" },
+    { icon: UsersIcon, label: "Equipe", route: "/team" },
+    { icon: Clock, label: "Horas", route: "/time-tracking" },
+    { icon: ClipboardList, label: "Clientes", route: "/clients" },
+    { icon: BarChart, label: "Relatórios", route: "/reports" },
+    { icon: LayoutIcon, label: "Kanban", route: "/kanban" },
+    { icon: Settings, label: "Configurações", route: "/settings" },
   ];
 
   const handleSignOut = async () => {
@@ -67,12 +67,12 @@ const Layout = () => {
           </div>
 
           <nav className="space-y-2 flex-1">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+            {navigationItems.map((item) => {
+              const isActive = location.pathname === item.route;
               return (
                 <Link
-                  key={item.name}
-                  to={item.href}
+                  key={item.label}
+                  to={item.route}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-smooth ${
                     isActive
                       ? "bg-accent text-white"
@@ -81,7 +81,7 @@ const Layout = () => {
                 >
                   <item.icon className="w-6 h-6" />
                   <span className={!isSidebarOpen ? "hidden" : ""}>
-                    {item.name}
+                    {item.label}
                   </span>
                 </Link>
               );
