@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Upload } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { v4 as uuidv4 } from 'uuid';
 
 interface RequestTimeCorrectionProps {
   isOpen: boolean;
@@ -19,11 +22,59 @@ const RequestTimeCorrection = ({ isOpen, onClose }: RequestTimeCorrectionProps) 
   const [justification, setJustification] = useState("");
   const [document, setDocument] = useState<File | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const createKanbanCard = async (timeCorrection: any) => {
+    const cardData = {
+      id: uuidv4(),
+      title: `Correção de Horário - ${date}`,
+      description: justification,
+      status: "requested",
+      date: new Date(),
+      requesterId: user?.id,
+      requesterName: user?.email,
+      timeCorrection: {
+        date,
+        times: [
+          { entrada: entrada1, saida: saida1 },
+          { entrada: entrada2, saida: saida2 },
+          { entrada: entrada3, saida: saida3 }
+        ].filter(t => t.entrada || t.saida),
+        justification,
+        document: document?.name
+      }
+    };
+
+    return cardData;
+  };
+
+  const createNotification = async (cardId: string) => {
+    const notification = {
+      id: uuidv4(),
+      title: "Nova solicitação de correção",
+      message: `Correção de horário para ${date} enviada para análise`,
+      date: new Date(),
+      read: false,
+      type: "info" as const
+    };
+
+    // Aqui você implementaria a lógica para salvar a notificação no banco de dados
+    return notification;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Usuário não autenticado"
+      });
+      return;
+    }
 
     // Validar campos obrigatórios
     if (!date || !justification) {
@@ -49,12 +100,39 @@ const RequestTimeCorrection = ({ isOpen, onClose }: RequestTimeCorrectionProps) 
       return;
     }
 
-    // Enviar solicitação
-    toast({
-      title: "Solicitação enviada",
-      description: "Sua solicitação será analisada pelo líder"
-    });
-    onClose();
+    try {
+      // Criar cartão Kanban
+      const kanbanCard = await createKanbanCard({
+        date,
+        entrada1,
+        saida1,
+        entrada2,
+        saida2,
+        entrada3,
+        saida3,
+        justification,
+        document
+      });
+
+      // Criar notificação
+      const notification = await createNotification(kanbanCard.id);
+
+      // Aqui você implementaria a lógica para salvar os dados no banco
+      
+      toast({
+        title: "Solicitação enviada",
+        description: "Sua solicitação será analisada pelo líder"
+      });
+
+      onClose();
+    } catch (error: any) {
+      console.error('Erro ao enviar solicitação:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar solicitação",
+        description: error.message
+      });
+    }
   };
 
   return (
