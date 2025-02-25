@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customers: {
+        Row: {
+          cnpj: string
+          company_name: string
+          created_at: string | null
+          id: string
+          subscription_end_date: string | null
+          subscription_start_date: string | null
+          subscription_status:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnpj: string
+          company_name: string
+          created_at?: string | null
+          id?: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          subscription_status?:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnpj?: string
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          subscription_status?:
+            | Database["public"]["Enums"]["subscription_status"]
+            | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           code: string
@@ -35,27 +74,41 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active: boolean | null
           created_at: string | null
+          customer_id: string | null
           email: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
         Insert: {
+          active?: boolean | null
           created_at?: string | null
+          customer_id?: string | null
           email: string
           id: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
         Update: {
+          active?: boolean | null
           created_at?: string | null
+          customer_id?: string | null
           email?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissions: {
         Row: {
@@ -160,6 +213,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      subscription_status: "active" | "inactive" | "pending" | "cancelled"
       user_role: "admin" | "user"
     }
     CompositeTypes: {
