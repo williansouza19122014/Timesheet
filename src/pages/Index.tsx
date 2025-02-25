@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import CapacityChart from "@/components/dashboard/CapacityChart";
 import HoursSummary from "@/components/dashboard/HoursSummary";
 import NotificationsList from "@/components/dashboard/NotificationsList";
+import MonthYearSelect from "@/components/dashboard/MonthYearSelect";
 import type { Notification, MonthlyData, HoursBreakdown } from "@/types/dashboard";
 
 // Dados mockados para exemplo
@@ -59,9 +60,38 @@ const mockHoursBreakdown: HoursBreakdown = {
 
 const Index = () => {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [showCapacit, setShowCapacit] = useState(true);
+  const [showHoursWorked, setShowHoursWorked] = useState(true);
+  const [showAverage, setShowAverage] = useState(true);
   const { toast } = useToast();
-  const currentMonth = format(new Date(), 'MMMM', { locale: ptBR });
-  const currentMonthData = mockMonthlyData[new Date().getMonth()];
+
+  const currentMonthLabel = selectedMonth !== null 
+    ? format(new Date(selectedYear, selectedMonth, 1), 'MMMM', { locale: ptBR })
+    : null;
+
+  const filteredData = selectedMonth !== null
+    ? mockMonthlyData.slice(selectedMonth, selectedMonth + 1)
+    : mockMonthlyData;
+
+  const currentMonthData = selectedMonth !== null
+    ? mockMonthlyData[selectedMonth]
+    : mockMonthlyData[new Date().getMonth()];
+
+  const handleSeriesToggle = (series: "capacit" | "hoursWorked" | "average") => {
+    switch (series) {
+      case "capacit":
+        setShowCapacit(prev => !prev);
+        break;
+      case "hoursWorked":
+        setShowHoursWorked(prev => !prev);
+        break;
+      case "average":
+        setShowAverage(prev => !prev);
+        break;
+    }
+  };
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => 
@@ -81,9 +111,20 @@ const Index = () => {
     <div className="animate-fade-in">
       <h1 className="text-4xl font-bold mb-8">Dashboard</h1>
 
+      <MonthYearSelect
+        currentMonth={selectedMonth}
+        currentYear={selectedYear}
+        onMonthChange={setSelectedMonth}
+        onYearChange={setSelectedYear}
+      />
+
       <CapacityChart 
-        data={mockMonthlyData} 
-        currentMonth={currentMonth} 
+        data={filteredData}
+        currentMonth={currentMonthLabel}
+        showCapacit={showCapacit}
+        showHoursWorked={showHoursWorked}
+        showAverage={showAverage}
+        onToggleSeries={handleSeriesToggle}
       />
 
       <div className="grid grid-cols-2 gap-6">
