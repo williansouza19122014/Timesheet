@@ -121,6 +121,8 @@ const Index = () => {
       <CapacityChart 
         data={filteredData}
         currentMonth={currentMonthLabel}
+        selectedMonth={selectedMonth ?? undefined}
+        selectedYear={selectedYear}
         showCapacit={showCapacit}
         showHoursWorked={showHoursWorked}
         showAverage={showAverage}

@@ -9,12 +9,16 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { format, getDaysInMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MonthlyData } from "@/types/dashboard";
 
 interface CapacityChartProps {
   data: MonthlyData[];
   currentMonth: string | null;
+  selectedMonth?: number;
+  selectedYear?: number;
   showCapacit?: boolean;
   showHoursWorked?: boolean;
   showAverage?: boolean;
@@ -24,11 +28,31 @@ interface CapacityChartProps {
 const CapacityChart = ({ 
   data, 
   currentMonth,
+  selectedMonth,
+  selectedYear,
   showCapacit = true,
   showHoursWorked = true,
   showAverage = true,
   onToggleSeries
 }: CapacityChartProps) => {
+  // Prepare daily data if month is selected
+  const chartData = selectedMonth !== undefined && selectedYear !== undefined
+    ? (() => {
+        const monthData = data[selectedMonth];
+        if (!monthData?.dailyData) {
+          // Generate mock daily data if not available
+          const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
+          return Array.from({ length: daysInMonth }, (_, i) => ({
+            day: i + 1,
+            capacit: 8, // 8 hours per day
+            hoursWorked: 7 + Math.random() * 2, // Random between 7-9 hours
+            projectHours: 6 + Math.random() * 2, // Random between 6-8 hours
+          }));
+        }
+        return monthData.dailyData;
+      })()
+    : data;
+
   return (
     <div className="bg-white p-6 rounded-lg border shadow-sm mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -70,11 +94,20 @@ const CapacityChart = ({
       </div>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
+            <XAxis 
+              dataKey={selectedMonth !== undefined ? "day" : "month"}
+              tickFormatter={selectedMonth !== undefined ? (value) => `Dia ${value}` : undefined}
+            />
             <YAxis />
-            <Tooltip />
+            <Tooltip 
+              labelFormatter={(label) => 
+                selectedMonth !== undefined 
+                  ? `Dia ${label}`
+                  : label
+              }
+            />
             <Legend />
             {showCapacit && (
               <Line 
@@ -94,7 +127,7 @@ const CapacityChart = ({
                 strokeWidth={2}
               />
             )}
-            {showAverage && (
+            {showAverage && !selectedMonth && (
               <Line 
                 type="monotone" 
                 dataKey="average" 
