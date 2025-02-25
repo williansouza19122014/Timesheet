@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -171,6 +172,8 @@ const Clients = () => {
               handleAddTeamMember(client.id, projectId, member, isLeader)}
             onEditTeamMember={(projectId, memberId, endDate) => 
               handleEditTeamMember(client.id, projectId, memberId, endDate)}
+            onRemoveTeamMember={(projectId, memberId) => 
+              handleRemoveTeamMember(client.id, projectId, memberId)}
             onEdit={() => {
               setEditingClient(client);
               setShowNewClientForm(true);
