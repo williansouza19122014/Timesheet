@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -9,20 +8,19 @@ import NotificationsList from "@/components/dashboard/NotificationsList";
 import MonthYearSelect from "@/components/dashboard/MonthYearSelect";
 import type { Notification, MonthlyData, HoursBreakdown } from "@/types/dashboard";
 
-// Dados mockados para exemplo
 const mockMonthlyData: MonthlyData[] = [
-  { month: "Jan", capacit: 168, hoursWorked: 165, projectHours: 150, average: 166 },
-  { month: "Fev", capacit: 160, hoursWorked: 158, projectHours: 140, average: 166 },
-  { month: "Mar", capacit: 176, hoursWorked: 170, projectHours: 160, average: 166 },
-  { month: "Abr", capacit: 168, hoursWorked: 172, projectHours: 155, average: 166 },
-  { month: "Mai", capacit: 176, hoursWorked: 169, projectHours: 165, average: 166 },
-  { month: "Jun", capacit: 168, hoursWorked: 165, projectHours: 145, average: 166 },
-  { month: "Jul", capacit: 168, hoursWorked: 160, projectHours: 140, average: 166 },
-  { month: "Ago", capacit: 176, hoursWorked: 175, projectHours: 165, average: 166 },
-  { month: "Set", capacit: 168, hoursWorked: 167, projectHours: 155, average: 166 },
-  { month: "Out", capacit: 176, hoursWorked: 178, projectHours: 160, average: 166 },
-  { month: "Nov", capacit: 168, hoursWorked: 164, projectHours: 150, average: 166 },
-  { month: "Dez", capacit: 160, hoursWorked: 162, projectHours: 145, average: 166 },
+  { month: "Jan", capacit: 168, hoursWorked: 165, projectHours: 150, average: 0 },
+  { month: "Fev", capacit: 160, hoursWorked: 158, projectHours: 140, average: 0 },
+  { month: "Mar", capacit: 176, hoursWorked: 170, projectHours: 160, average: 0 },
+  { month: "Abr", capacit: 168, hoursWorked: 172, projectHours: 155, average: 0 },
+  { month: "Mai", capacit: 176, hoursWorked: 169, projectHours: 165, average: 0 },
+  null,
+  null,
+  { month: "Ago", capacit: 176, hoursWorked: 175, projectHours: 165, average: 0 },
+  { month: "Set", capacit: 168, hoursWorked: 167, projectHours: 155, average: 0 },
+  { month: "Out", capacit: 176, hoursWorked: 178, projectHours: 160, average: 0 },
+  { month: "Nov", capacit: 168, hoursWorked: 164, projectHours: 150, average: 0 },
+  { month: "Dez", capacit: 160, hoursWorked: 162, projectHours: 145, average: 0 },
 ];
 
 const mockNotifications: Notification[] = [
@@ -67,17 +65,31 @@ const Index = () => {
   const [showAverage, setShowAverage] = useState(true);
   const { toast } = useToast();
 
+  const processedData = mockMonthlyData.map((monthData) => {
+    if (!monthData) return null;
+
+    const validMonths = mockMonthlyData.filter(m => m !== null) as MonthlyData[];
+    const totalHoursWorked = validMonths.reduce((sum, m) => sum + m.hoursWorked, 0);
+    const annualAverage = totalHoursWorked / validMonths.length;
+
+    return {
+      ...monthData,
+      average: annualAverage
+    };
+  }).filter(Boolean) as MonthlyData[];
+
   const currentMonthLabel = selectedMonth !== null 
     ? format(new Date(selectedYear, selectedMonth, 1), 'MMMM', { locale: ptBR })
     : null;
 
   const filteredData = selectedMonth !== null
-    ? mockMonthlyData.slice(selectedMonth, selectedMonth + 1)
-    : mockMonthlyData;
+    ? processedData.filter(data => data.month === format(new Date(selectedYear, selectedMonth, 1), 'MMM'))
+    : processedData;
 
   const currentMonthData = selectedMonth !== null
-    ? mockMonthlyData[selectedMonth]
-    : mockMonthlyData[new Date().getMonth()];
+    ? processedData.find(data => data.month === format(new Date(selectedYear, selectedMonth, 1), 'MMM'))
+    || processedData[0]
+    : processedData[0];
 
   const handleSeriesToggle = (series: "capacit" | "hoursWorked" | "average") => {
     switch (series) {
