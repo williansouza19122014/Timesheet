@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -95,6 +94,17 @@ const Kanban = () => {
     });
   };
 
+  const handleCardSelect = (card: KanbanCard) => {
+    if (card.status === "requested") {
+      moveCard(card.id, "requested", "inAnalysis");
+      toast({
+        title: "Tarefa em análise!",
+        description: "O cartão foi movido automaticamente para análise"
+      });
+    }
+    setSelectedCard(card);
+  };
+
   const handleAnalyze = (cardId: string) => {
     moveCard(cardId, "requested", "inAnalysis");
     toast({
@@ -119,6 +129,15 @@ const Kanban = () => {
       variant: "destructive",
       title: "Correção necessária",
       description: "Uma correção foi solicitada"
+    });
+    setSelectedCard(null);
+  };
+
+  const handleRequestReanalysis = (cardId: string) => {
+    moveCard(cardId, "needsCorrection", "requested");
+    toast({
+      title: "Reanálise solicitada",
+      description: "O cartão foi movido para a coluna de solicitações"
     });
     setSelectedCard(null);
   };
@@ -177,7 +196,7 @@ const Kanban = () => {
             key={column.id}
             column={column}
             selectedCardId={selectedCard?.id}
-            onCardSelect={setSelectedCard}
+            onCardSelect={handleCardSelect}
             onAnalyze={handleAnalyze}
             onApprove={handleApprove}
             onRequestCorrection={handleRequestCorrection}
@@ -189,9 +208,9 @@ const Kanban = () => {
         <KanbanCardModal
           card={selectedCard}
           onClose={() => setSelectedCard(null)}
-          onAnalyze={handleAnalyze}
           onApprove={handleApprove}
           onRequestCorrection={handleRequestCorrection}
+          onRequestReanalysis={handleRequestReanalysis}
           onSendMessage={handleSendMessage}
         />
       )}

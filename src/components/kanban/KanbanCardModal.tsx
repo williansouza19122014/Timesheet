@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,18 +9,18 @@ import { KanbanCard, ChatMessage } from "@/types/kanban";
 interface KanbanCardModalProps {
   card: KanbanCard;
   onClose: () => void;
-  onAnalyze: (cardId: string) => void;
   onApprove: (cardId: string) => void;
   onRequestCorrection: (cardId: string) => void;
+  onRequestReanalysis: (cardId: string) => void;
   onSendMessage: (message: string) => void;
 }
 
 export const KanbanCardModal = ({
   card,
   onClose,
-  onAnalyze,
   onApprove,
   onRequestCorrection,
+  onRequestReanalysis,
   onSendMessage,
 }: KanbanCardModalProps) => {
   const [newMessage, setNewMessage] = useState("");
@@ -29,6 +29,13 @@ export const KanbanCardModal = ({
     if (!newMessage.trim()) return;
     onSendMessage(newMessage);
     setNewMessage("");
+  };
+
+  // Simulated hours data (replace with real data in production)
+  const hoursData = {
+    totalHours: 8,
+    projectHours: 40,
+    difference: -32
   };
 
   return (
@@ -46,6 +53,27 @@ export const KanbanCardModal = ({
           {/* Main content */}
           <div className="flex-1 p-6 border-r overflow-y-auto">
             <div className="space-y-6">
+              {/* Hours comparison panel */}
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <h3 className="font-medium mb-3">Comparativo de Horas</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span>Total de horas registradas:</span>
+                    <span className="font-medium">{hoursData.totalHours}h</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Total de horas planejadas:</span>
+                    <span className="font-medium">{hoursData.projectHours}h</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span>Diferença:</span>
+                    <span className={`font-medium ${hoursData.difference < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                      {hoursData.difference < 0 ? 'Faltam' : 'Excedeu'} {Math.abs(hoursData.difference)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <h3 className="font-medium mb-2">Informações da Solicitação</h3>
                 <div className="space-y-2 text-sm">
@@ -66,16 +94,6 @@ export const KanbanCardModal = ({
                 </div>
               </div>
 
-              {card.status === "requested" && (
-                <Button
-                  onClick={() => onAnalyze(card.id)}
-                  className="w-full"
-                  variant="secondary"
-                >
-                  Iniciar Análise
-                </Button>
-              )}
-
               {card.status === "inAnalysis" && (
                 <div className="flex gap-2">
                   <Button
@@ -93,6 +111,17 @@ export const KanbanCardModal = ({
                     Solicitar Correção
                   </Button>
                 </div>
+              )}
+
+              {card.status === "needsCorrection" && (
+                <Button
+                  onClick={() => onRequestReanalysis(card.id)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <ArrowUpRight className="mr-2" />
+                  Solicitar Reanálise
+                </Button>
               )}
             </div>
           </div>
