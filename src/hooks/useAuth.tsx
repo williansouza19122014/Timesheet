@@ -1,40 +1,36 @@
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { createContext, useContext, ReactNode } from "react";
 
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Verifique o estado inicial da autenticação
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Inscreva-se para mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
-  return {
-    user,
-    loading,
-    signOut,
-  };
+interface AuthContextType {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  } | null;
+  isAdmin: boolean;
 }
+
+const AuthContext = createContext<AuthContextType>({
+  // Define um usuário admin padrão durante o desenvolvimento
+  user: {
+    id: "dev-admin",
+    email: "admin@example.com",
+    role: "admin"
+  },
+  isAdmin: true
+});
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const value = {
+    user: {
+      id: "dev-admin",
+      email: "admin@example.com",
+      role: "admin"
+    },
+    isAdmin: true
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export const useAuth = () => useContext(AuthContext);
