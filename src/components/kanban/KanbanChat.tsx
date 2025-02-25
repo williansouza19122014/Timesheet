@@ -1,39 +1,29 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { ChatMessage } from "@/types/kanban";
 
 interface KanbanChatProps {
-  messages?: ChatMessage[];
-  onSendMessage: (message: string) => void;
-  onClose: () => void;
+  messages: ChatMessage[];
+  newMessage: string;
+  onNewMessageChange: (value: string) => void;
+  onSendMessage: () => void;
 }
 
-export const KanbanChat = ({ messages, onSendMessage, onClose }: KanbanChatProps) => {
-  const [newMessage, setNewMessage] = useState("");
-
-  const handleSend = () => {
-    if (!newMessage.trim()) return;
-    onSendMessage(newMessage);
-    setNewMessage("");
-  };
-
+export const KanbanChat = ({
+  messages,
+  newMessage,
+  onNewMessageChange,
+  onSendMessage,
+}: KanbanChatProps) => {
   return (
-    <div className="fixed bottom-0 right-0 w-96 bg-white border-l border-t shadow-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium">Chat</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-        >
-          Fechar
-        </Button>
+    <div className="w-80 flex flex-col">
+      <div className="p-4 border-b">
+        <h3 className="font-medium">Conversas</h3>
       </div>
 
-      <ScrollArea className="h-[300px] mb-4">
+      <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages?.map((message) => (
             <div
@@ -60,15 +50,17 @@ export const KanbanChat = ({ messages, onSendMessage, onClose }: KanbanChatProps
         </div>
       </ScrollArea>
 
-      <div className="flex gap-2">
-        <Textarea
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Digite sua mensagem..."
-          className="resize-none"
-          rows={2}
-        />
-        <Button onClick={handleSend}>Enviar</Button>
+      <div className="p-4 border-t">
+        <div className="flex gap-2">
+          <Textarea
+            value={newMessage}
+            onChange={(e) => onNewMessageChange(e.target.value)}
+            placeholder="Digite sua mensagem..."
+            className="resize-none"
+            rows={2}
+          />
+          <Button onClick={onSendMessage}>Enviar</Button>
+        </div>
       </div>
     </div>
   );
