@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 interface RequestTimeCorrectionProps {
   isOpen: boolean;
