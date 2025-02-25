@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +91,36 @@ const Clients = () => {
     }));
   };
 
+  const handleEditTeamMember = (clientId: string, projectId: string, memberId: string, endDate: string) => {
+    setClients(prev => prev.map(client => {
+      if (client.id === clientId) {
+        return {
+          ...client,
+          projects: client.projects.map(project => {
+            if (project.id === projectId) {
+              const updatedMember = project.team.find(m => m.id === memberId);
+              if (!updatedMember) return project;
+
+              const updatedTeam = project.team.filter(m => m.id !== memberId);
+              const newMember = { ...updatedMember, endDate };
+              
+              return {
+                ...project,
+                team: endDate ? updatedTeam : [...updatedTeam, newMember],
+                previousMembers: endDate 
+                  ? [...(project.previousMembers || []), newMember]
+                  : project.previousMembers,
+                ...(newMember.isLeader && endDate && { leader: undefined })
+              };
+            }
+            return project;
+          })
+        };
+      }
+      return client;
+    }));
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
@@ -140,8 +169,8 @@ const Clients = () => {
             onShowTeamForm={(projectId) => setShowTeamForm({ clientId: client.id, projectId })}
             onAddTeamMember={(projectId, member, isLeader) => 
               handleAddTeamMember(client.id, projectId, member, isLeader)}
-            onRemoveTeamMember={(projectId, memberId) => 
-              handleRemoveTeamMember(client.id, projectId, memberId)}
+            onEditTeamMember={(projectId, memberId, endDate) => 
+              handleEditTeamMember(client.id, projectId, memberId, endDate)}
             onEdit={() => {
               setEditingClient(client);
               setShowNewClientForm(true);

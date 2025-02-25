@@ -10,7 +10,7 @@ interface ProjectCardProps {
   showTeamForm: boolean;
   onShowTeamForm: () => void;
   onAddTeamMember: (member: TeamMember) => void;
-  onRemoveTeamMember: (memberId: string) => void;
+  onEditTeamMember: (memberId: string, endDate: string) => void;
 }
 
 const ProjectCard = ({
@@ -18,14 +18,20 @@ const ProjectCard = ({
   showTeamForm,
   onShowTeamForm,
   onAddTeamMember,
-  onRemoveTeamMember
+  onEditTeamMember
 }: ProjectCardProps) => {
   const [showCurrentTeam, setShowCurrentTeam] = useState(false);
   const [showPreviousMembers, setShowPreviousMembers] = useState(false);
 
+  const activeMembers = project.team.filter(member => !member.endDate);
+  const inactiveMembers = [
+    ...(project.team.filter(member => member.endDate) || []),
+    ...(project.previousMembers || [])
+  ];
+
   return (
-    <div className="border rounded-lg p-4">
-      <div className="flex justify-between items-start mb-4">
+    <div className="border rounded-lg overflow-hidden">
+      <div className="p-4">
         <div className="space-y-2">
           <h4 className="font-medium">{project.name}</h4>
           <p className="text-sm text-muted-foreground">{project.description}</p>
@@ -52,21 +58,23 @@ const ProjectCard = ({
             </p>
           )}
         </div>
-        <button
-          onClick={onShowTeamForm}
-          className="px-3 py-1 text-sm border border-accent text-accent rounded-lg hover:bg-accent/10 transition-colors"
-        >
-          Gerenciar Equipe
-        </button>
       </div>
 
+      <button
+        onClick={onShowTeamForm}
+        className="w-full flex items-center justify-between p-4 border-t hover:bg-gray-50 transition-colors"
+      >
+        <span className="font-medium">Gerenciar Equipe</span>
+        {showTeamForm ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+      </button>
+
       {showTeamForm && (
-        <div className="border-t pt-4">
+        <div className="border-t p-4">
           <div className="space-y-4">
             <div>
               <h5 className="font-medium mb-2">Adicionar Membro</h5>
               <ProjectTeamForm
-                onAddMember={(member) => onAddTeamMember(member)}
+                onAddMember={onAddTeamMember}
                 hasLeader={!!project.leader}
               />
             </div>
@@ -76,25 +84,25 @@ const ProjectCard = ({
                 onClick={() => setShowCurrentTeam(!showCurrentTeam)}
                 className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <span className="font-medium">Equipe Atual</span>
+                <span className="font-medium">Equipe Atual ({activeMembers.length})</span>
                 {showCurrentTeam ? <ChevronUp /> : <ChevronDown />}
               </button>
               {showCurrentTeam && (
                 <div className="mt-2 space-y-2">
-                  {project.team.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum membro na equipe</p>
+                  {activeMembers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum membro ativo na equipe</p>
                   ) : (
-                    project.team.map(member => (
+                    activeMembers.map(member => (
                       <ProjectTeamMember
                         key={member.id}
+                        id={member.id}
                         name={member.name}
                         email={member.email}
                         startDate={member.startDate}
                         endDate={member.endDate}
                         role={member.role}
                         isLeader={member.isLeader}
-                        onEdit={() => {}} // Temporary empty function until edit functionality is implemented
-                        onRemove={() => onRemoveTeamMember(member.id)}
+                        onEdit={onEditTeamMember}
                       />
                     ))
                   )}
@@ -102,28 +110,28 @@ const ProjectCard = ({
               )}
             </div>
 
-            {project.previousMembers && project.previousMembers.length > 0 && (
+            {inactiveMembers.length > 0 && (
               <div>
                 <button
                   onClick={() => setShowPreviousMembers(!showPreviousMembers)}
                   className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <span className="font-medium">Membros Anteriores</span>
+                  <span className="font-medium">Membros Anteriores ({inactiveMembers.length})</span>
                   {showPreviousMembers ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showPreviousMembers && (
                   <div className="mt-2 space-y-2">
-                    {project.previousMembers.map(member => (
+                    {inactiveMembers.map(member => (
                       <ProjectTeamMember
                         key={member.id}
+                        id={member.id}
                         name={member.name}
                         email={member.email}
                         startDate={member.startDate}
                         endDate={member.endDate}
                         role={member.role}
                         isLeader={member.isLeader}
-                        onEdit={() => {}} // Temporary empty function until edit functionality is implemented
-                        onRemove={() => onRemoveTeamMember(member.id)}
+                        onEdit={onEditTeamMember}
                       />
                     ))}
                   </div>
