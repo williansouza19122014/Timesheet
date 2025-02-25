@@ -2,59 +2,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
-@layer base {
-  :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 47.4% 11.2%;
-    --radius: 0.75rem;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
-}
 
 @layer utilities {
-  .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
+  .backface-hidden {
+    backface-visibility: hidden;
   }
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-muted rounded-full;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-secondary/50 rounded-full hover:bg-secondary/70 transition-colors;
-}
-
-/* Page Transitions */
-.page-enter {
-  @apply opacity-0;
-}
-
-.page-enter-active {
-  @apply opacity-100 transition-opacity duration-300;
-}
-
-.page-exit {
-  @apply opacity-100;
-}
-
-.page-exit-active {
-  @apply opacity-0 transition-opacity duration-300;
 }

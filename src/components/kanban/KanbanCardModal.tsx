@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { X, ArrowUpRight, Edit2, Trash2, FileText } from "lucide-react";
+import { X, ArrowUpRight, Edit2, Trash2, FileText, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,7 @@ export const KanbanCardModal = ({
   onDelete,
 }: KanbanCardModalProps) => {
   const [newMessage, setNewMessage] = useState("");
+  const [isFlipped, setIsFlipped] = useState(false);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -83,55 +85,102 @@ export const KanbanCardModal = ({
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 p-6 border-r overflow-y-auto">
             <div className="space-y-6">
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <h3 className="font-medium mb-3">
-                  Comparativo de Horas - {hoursData.date.toLocaleDateString()}
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>Total de horas trabalhadas:</span>
-                    <span className="font-medium">{hoursData.totalHours}h</span>
+              <div className="relative" style={{ perspective: "1000px" }}>
+                <div
+                  className={`transition-all duration-500 w-full ${
+                    isFlipped ? "[transform:rotateY(180deg)]" : ""
+                  }`}
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <div className="bg-gray-50 p-4 rounded-lg border absolute w-full backface-hidden">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium">
+                        Comparativo de Horas - {hoursData.date.toLocaleDateString()}
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsFlipped(!isFlipped)}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span>Total de horas trabalhadas:</span>
+                        <span className="font-medium">{hoursData.totalHours}h</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Total de horas em projetos:</span>
+                        <span className="font-medium">{hoursData.projectHours}h</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span>Diferença:</span>
+                        <span className={`font-medium ${hoursData.difference > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          {hoursData.difference > 0 ? 'Faltam' : 'Excedeu'} {Math.abs(hoursData.difference)}h
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span>Total de horas em projetos:</span>
-                    <span className="font-medium">{hoursData.projectHours}h</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <span>Diferença:</span>
-                    <span className={`font-medium ${hoursData.difference > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                      {hoursData.difference > 0 ? 'Faltam' : 'Excedeu'} {Math.abs(hoursData.difference)}h
-                    </span>
+
+                  <div className="bg-gray-50 p-4 rounded-lg border absolute w-full backface-hidden [transform:rotateY(180deg)]">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium">Detalhes dos Projetos</h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsFlipped(!isFlipped)}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {/* Exemplo de apontamentos - substituir por dados reais */}
+                      <div className="p-2 bg-white rounded border">
+                        <div className="font-medium">Projeto A</div>
+                        <div className="text-sm text-muted-foreground">4 horas</div>
+                      </div>
+                      <div className="p-2 bg-white rounded border">
+                        <div className="font-medium">Projeto B</div>
+                        <div className="text-sm text-muted-foreground">2 horas</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-medium mb-2">Informações da Solicitação</h3>
-                <div className="space-y-2 text-sm">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <p><strong>Nome do colaborador:</strong> {card.requesterName}</p>
                   <p><strong>Data:</strong> {new Date(card.timeCorrection.date).toLocaleDateString()}</p>
-                  <p><strong>Solicitante:</strong> {card.requesterName}</p>
-                  <div>
-                    <strong>Horários:</strong>
-                    {card.timeCorrection.times.map((time, index) => (
-                      <p key={index} className="ml-2">
-                        • {time.entrada} - {time.saida}
-                      </p>
-                    ))}
-                  </div>
-                  <p><strong>Justificativa:</strong> {card.timeCorrection.justification}</p>
-                  {card.timeCorrection.document && (
-                    <p className="flex items-center gap-2">
-                      <strong>Documento:</strong>
-                      <button
-                        onClick={() => handleViewDocument(card.timeCorrection.document!)}
-                        className="text-blue-500 hover:text-blue-700 underline inline-flex items-center gap-1"
-                      >
-                        <FileText className="h-4 w-4" />
-                        {card.timeCorrection.document}
-                      </button>
-                    </p>
-                  )}
                 </div>
+                
+                <div>
+                  <strong>Horários:</strong>
+                  {card.timeCorrection.times.map((time, index) => (
+                    <p key={index} className="ml-2">
+                      • {time.entrada} - {time.saida}
+                    </p>
+                  ))}
+                </div>
+
+                <div>
+                  <strong>Justificativa:</strong>
+                  <p className="mt-1">{card.timeCorrection.justification}</p>
+                </div>
+
+                {card.timeCorrection.document && (
+                  <div>
+                    <strong>Documento:</strong>
+                    <button
+                      onClick={() => handleViewDocument(card.timeCorrection.document!)}
+                      className="ml-2 text-blue-500 hover:text-blue-700 underline inline-flex items-center gap-1"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {card.timeCorrection.document}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {showApprovalActions && (
