@@ -21,12 +21,24 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
+      console.log("Tentando fazer login...");
+      
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        console.error("Erro no login inicial:", signInError);
+        throw signInError;
+      }
+
+      if (!signInData.user) {
+        console.error("Nenhum usuário retornado após login");
+        throw new Error("Erro ao fazer login: usuário não encontrado");
+      }
+
+      console.log("Login inicial bem sucedido, buscando perfil...");
 
       // Buscar perfil do usuário com informações do cliente
       const { data: profile, error: profileError } = await supabase
@@ -41,8 +53,11 @@ const LoginForm = () => {
       }
 
       if (!profile) {
+        console.error('Perfil não encontrado para o usuário');
         throw new Error("Perfil não encontrado");
       }
+
+      console.log("Perfil encontrado:", profile);
 
       if (!profile.active) {
         throw new Error("Sua conta está inativa. Entre em contato com o administrador.");
@@ -50,7 +65,8 @@ const LoginForm = () => {
 
       // Verificar se é admin para teste@gmail.com
       if (email === 'teste@gmail.com' && profile.role !== 'admin') {
-        // Atualizar role para admin se necessário
+        console.log("Atualizando permissões para admin...");
+        
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ role: 'admin' })
@@ -69,15 +85,25 @@ const LoginForm = () => {
 
       navigate("/");
     } catch (error: any) {
-      console.error('Erro no login:', error);
+      console.error('Erro detalhado no login:', error);
+      
+      let errorMessage = "Erro ao fazer login. ";
+      if (error.message?.includes("Invalid login credentials")) {
+        errorMessage = "Email ou senha incorretos.";
+      } else if (error.message?.includes("Failed to fetch")) {
+        errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+      } else {
+        errorMessage += error.message || "Verifique suas credenciais e tente novamente";
+      }
+
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: error.message || "Verifique suas credenciais e tente novamente",
+        description: errorMessage,
       });
       
       // Se for erro de autenticação, fazer logout para limpar qualquer estado
-      if (error.message.includes("Invalid login")) {
+      if (error.message?.includes("Invalid login")) {
         await supabase.auth.signOut();
       }
     } finally {
