@@ -26,18 +26,18 @@ interface Notification {
 
 // Dados mockados para exemplo
 const mockMonthlyData = [
-  { month: "Jan", capacit: 168, hoursWorked: 165, average: 166 },
-  { month: "Fev", capacit: 160, hoursWorked: 158, average: 166 },
-  { month: "Mar", capacit: 176, hoursWorked: 170, average: 166 },
-  { month: "Abr", capacit: 168, hoursWorked: 172, average: 166 },
-  { month: "Mai", capacit: 176, hoursWorked: 169, average: 166 },
-  { month: "Jun", capacit: 168, hoursWorked: 165, average: 166 },
-  { month: "Jul", capacit: 168, hoursWorked: 160, average: 166 },
-  { month: "Ago", capacit: 176, hoursWorked: 175, average: 166 },
-  { month: "Set", capacit: 168, hoursWorked: 167, average: 166 },
-  { month: "Out", capacit: 176, hoursWorked: 178, average: 166 },
-  { month: "Nov", capacit: 168, hoursWorked: 164, average: 166 },
-  { month: "Dez", capacit: 160, hoursWorked: 162, average: 166 },
+  { month: "Jan", capacit: 168, hoursWorked: 165, projectHours: 150, average: 166 },
+  { month: "Fev", capacit: 160, hoursWorked: 158, projectHours: 140, average: 166 },
+  { month: "Mar", capacit: 176, hoursWorked: 170, projectHours: 160, average: 166 },
+  { month: "Abr", capacit: 168, hoursWorked: 172, projectHours: 155, average: 166 },
+  { month: "Mai", capacit: 176, hoursWorked: 169, projectHours: 165, average: 166 },
+  { month: "Jun", capacit: 168, hoursWorked: 165, projectHours: 145, average: 166 },
+  { month: "Jul", capacit: 168, hoursWorked: 160, projectHours: 140, average: 166 },
+  { month: "Ago", capacit: 176, hoursWorked: 175, projectHours: 165, average: 166 },
+  { month: "Set", capacit: 168, hoursWorked: 167, projectHours: 155, average: 166 },
+  { month: "Out", capacit: 176, hoursWorked: 178, projectHours: 160, average: 166 },
+  { month: "Nov", capacit: 168, hoursWorked: 164, projectHours: 150, average: 166 },
+  { month: "Dez", capacit: 160, hoursWorked: 162, projectHours: 145, average: 166 },
 ];
 
 const mockNotifications: Notification[] = [
@@ -67,6 +67,13 @@ const mockNotifications: Notification[] = [
   },
 ];
 
+// Dados mockados para distribuição de horas não-projeto
+const mockHoursBreakdown = {
+  internalProjects: 8,
+  vacation: 16,
+  medicalLeave: 4
+};
+
 const Index = () => {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const { toast } = useToast();
@@ -75,6 +82,7 @@ const Index = () => {
   // Dados do mês atual
   const currentMonthData = mockMonthlyData[new Date().getMonth()];
   const hoursBalance = currentMonthData.hoursWorked - currentMonthData.capacit;
+  const nonProjectHours = currentMonthData.hoursWorked - currentMonthData.projectHours;
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => 
@@ -149,7 +157,7 @@ const Index = () => {
             </div>
             <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="text-sm font-medium text-gray-500 mb-1">Horas em Projetos</h3>
-              <p className="text-2xl font-bold">{Math.round(currentMonthData.hoursWorked * 0.9)}h</p>
+              <p className="text-2xl font-bold">{currentMonthData.projectHours}h</p>
             </div>
             <div className="bg-white p-4 rounded-lg border shadow-sm">
               <h3 className="text-sm font-medium text-gray-500 mb-1">Saldo de Horas</h3>
@@ -158,6 +166,36 @@ const Index = () => {
               </p>
             </div>
           </div>
+
+          {nonProjectHours > 0 && (
+            <div className="bg-white p-4 rounded-lg border shadow-sm">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">Detalhamento de Horas Não-Projeto</h3>
+              <div className="space-y-2">
+                {mockHoursBreakdown.internalProjects > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Projetos Internos</span>
+                    <span className="font-medium">{mockHoursBreakdown.internalProjects}h</span>
+                  </div>
+                )}
+                {mockHoursBreakdown.vacation > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Férias</span>
+                    <span className="font-medium">{mockHoursBreakdown.vacation}h</span>
+                  </div>
+                )}
+                {mockHoursBreakdown.medicalLeave > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Atestado</span>
+                    <span className="font-medium">{mockHoursBreakdown.medicalLeave}h</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <span className="text-sm font-medium">Total Não-Projeto</span>
+                  <span className="font-bold text-accent">{nonProjectHours}h</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white p-4 rounded-lg border shadow-sm">
