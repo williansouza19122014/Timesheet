@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { KanbanColumn } from "@/components/kanban/KanbanColumn";
 import { KanbanCardModal } from "@/components/kanban/KanbanCardModal";
+import { EditKanbanCardModal } from "@/components/kanban/EditKanbanCardModal";
 import { mockData } from "@/data/mockKanbanData";
 import type { KanbanCard, KanbanColumn as IKanbanColumn } from "@/types/kanban";
-import { EditKanbanCardModal } from "@/components/kanban/EditKanbanCardModal";
 
 const initialColumns: IKanbanColumn[] = [
   {
@@ -131,6 +131,20 @@ const Kanban = () => {
     toast({
       title: "Solicitação atualizada",
       description: "As alterações foram salvas com sucesso"
+    });
+  };
+
+  const handleDeleteCard = (cardId: string) => {
+    setColumns(prev => {
+      return prev.map(column => ({
+        ...column,
+        cards: column.cards.filter(card => card.id !== cardId)
+      }));
+    });
+    setSelectedCard(null);
+    toast({
+      title: "Solicitação excluída",
+      description: "A solicitação foi removida com sucesso"
     });
   };
 
