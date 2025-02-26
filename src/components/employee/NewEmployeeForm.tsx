@@ -2,18 +2,13 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { PersonalInfoSection } from "./form-sections/PersonalInfoSection";
+import { WorkInfoSection } from "./form-sections/WorkInfoSection";
+import { AddressSection } from "./form-sections/AddressSection";
+import { ProjectsSection } from "./form-sections/ProjectsSection";
 
 interface NewEmployeeFormProps {
   onSuccess: () => void;
@@ -153,7 +148,6 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     try {
       const cpf = formData.cpf.replace(/\D/g, '');
 
-      // 1. Inserir o colaborador
       const { data: employeeData, error: employeeError } = await supabase
         .from('system_users')
         .insert({
@@ -178,13 +172,12 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
 
       if (employeeError) throw employeeError;
 
-      // 2. Inserir as associações com projetos
       if (formData.selectedProjects.length > 0) {
         const projectMembers = formData.selectedProjects.map(projectId => ({
           user_id: employeeData.id,
           project_id: projectId,
           start_date: new Date().toISOString().split('T')[0],
-          role: formData.position // Usando o cargo como role inicial
+          role: formData.position
         }));
 
         const { error: projectMemberError } = await supabase
@@ -207,258 +200,41 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     }
   };
 
-  const currentClientProjects = selectedClient
-    ? clients.find(c => c.id === selectedClient)?.projects || []
-    : [];
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nome Completo *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="cpf">CPF *</Label>
-          <Input
-            id="cpf"
-            value={formData.cpf}
-            onChange={(e) => handleInputChange('cpf', e.target.value)}
-            placeholder="Apenas números"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="birth_date">Data de Nascimento *</Label>
-          <Input
-            id="birth_date"
-            type="date"
-            value={formData.birth_date}
-            onChange={(e) => handleInputChange('birth_date', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">E-mail Corporativo *</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="phone">Telefone *</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="Com DDD"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="position">Cargo *</Label>
-          <Input
-            id="position"
-            value={formData.position}
-            onChange={(e) => handleInputChange('position', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="department">Setor/Departamento *</Label>
-          <Input
-            id="department"
-            value={formData.department}
-            onChange={(e) => handleInputChange('department', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="hire_date">Data de Admissão *</Label>
-          <Input
-            id="hire_date"
-            type="date"
-            value={formData.hire_date}
-            onChange={(e) => handleInputChange('hire_date', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="contract_type">Tipo de Contrato *</Label>
-          <Select
-            value={formData.contract_type}
-            onValueChange={(value) => handleInputChange('contract_type', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o tipo de contrato" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="CLT">CLT</SelectItem>
-              <SelectItem value="PJ">PJ</SelectItem>
-              <SelectItem value="Estágio">Estágio</SelectItem>
-              <SelectItem value="Temporário">Temporário</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="work_start_time">Horário de Entrada *</Label>
-          <Input
-            id="work_start_time"
-            type="time"
-            value={formData.work_start_time}
-            onChange={(e) => handleInputChange('work_start_time', e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="work_end_time">Horário de Saída *</Label>
-          <Input
-            id="work_end_time"
-            type="time"
-            value={formData.work_end_time}
-            onChange={(e) => handleInputChange('work_end_time', e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Endereço</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="street">Rua *</Label>
-            <Input
-              id="street"
-              value={formData.address.street}
-              onChange={(e) => handleInputChange('address.street', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="number">Número *</Label>
-            <Input
-              id="number"
-              value={formData.address.number}
-              onChange={(e) => handleInputChange('address.number', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="complement">Complemento</Label>
-            <Input
-              id="complement"
-              value={formData.address.complement}
-              onChange={(e) => handleInputChange('address.complement', e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="neighborhood">Bairro *</Label>
-            <Input
-              id="neighborhood"
-              value={formData.address.neighborhood}
-              onChange={(e) => handleInputChange('address.neighborhood', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="city">Cidade *</Label>
-            <Input
-              id="city"
-              value={formData.address.city}
-              onChange={(e) => handleInputChange('address.city', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="state">Estado *</Label>
-            <Input
-              id="state"
-              value={formData.address.state}
-              onChange={(e) => handleInputChange('address.state', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="zip_code">CEP *</Label>
-            <Input
-              id="zip_code"
-              value={formData.address.zip_code}
-              onChange={(e) => handleInputChange('address.zip_code', e.target.value)}
-              required
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Projetos</h3>
-        <div className="space-y-2">
-          <Label>Selecione o Cliente</Label>
-          <Select value={selectedClient} onValueChange={setSelectedClient}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map(client => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {selectedClient && (
-          <div className="space-y-2">
-            <Label>Projetos do Cliente</Label>
-            <div className="grid grid-cols-2 gap-4">
-              {currentClientProjects.map(project => (
-                <div key={project.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`project-${project.id}`}
-                    checked={formData.selectedProjects.includes(project.id)}
-                    onCheckedChange={() => handleProjectToggle(project.id)}
-                  />
-                  <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="additional_notes">Observações Adicionais</Label>
-        <Textarea
-          id="additional_notes"
-          value={formData.additional_notes}
-          onChange={(e) => handleInputChange('additional_notes', e.target.value)}
-          placeholder="Se necessário"
+      <div className="space-y-6">
+        <PersonalInfoSection 
+          formData={formData} 
+          handleInputChange={handleInputChange} 
         />
+
+        <WorkInfoSection 
+          formData={formData} 
+          handleInputChange={handleInputChange} 
+        />
+
+        <AddressSection 
+          address={formData.address} 
+          handleInputChange={handleInputChange} 
+        />
+
+        <ProjectsSection 
+          clients={clients}
+          selectedClient={selectedClient}
+          selectedProjects={formData.selectedProjects}
+          setSelectedClient={setSelectedClient}
+          handleProjectToggle={handleProjectToggle}
+        />
+
+        <div className="space-y-2">
+          <Label htmlFor="additional_notes">Observações Adicionais</Label>
+          <Textarea
+            id="additional_notes"
+            value={formData.additional_notes}
+            onChange={(e) => handleInputChange('additional_notes', e.target.value)}
+            placeholder="Se necessário"
+          />
+        </div>
       </div>
 
       <div className="flex justify-end gap-4">
