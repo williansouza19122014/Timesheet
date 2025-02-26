@@ -45,7 +45,7 @@ const Clients = () => {
               end_date,
               role,
               is_leader,
-              system_users (
+              system_users!inner (
                 id,
                 name,
                 email
@@ -76,7 +76,7 @@ const Clients = () => {
               end_date,
               role,
               is_leader,
-              system_users (
+              system_users!inner (
                 id,
                 name,
                 email
