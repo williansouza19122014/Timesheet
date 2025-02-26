@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Download, CheckSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,8 @@ interface Employee {
     state: string;
     zip_code: string;
   };
+  selectedClients: string[];
+  selectedProjects: string[];
 }
 
 interface ReportDialogProps {
@@ -43,6 +45,7 @@ interface ReportDialogProps {
 
 export function ReportDialog({ employees }: ReportDialogProps) {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const availableFields = [
     { id: "name", label: "Nome" },
@@ -56,8 +59,25 @@ export function ReportDialog({ employees }: ReportDialogProps) {
     { id: "birth_date", label: "Data de Nascimento" },
     { id: "contract_type", label: "Tipo de Contrato" },
     { id: "work_start_time", label: "Horário de Entrada" },
-    { id: "work_end_time", label: "Horário de Saída" }
+    { id: "work_end_time", label: "Horário de Saída" },
+    { id: "selectedClients", label: "Cliente" },
+    { id: "selectedProjects", label: "Projeto" }
   ];
+
+  // Reset selected fields when dialog is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedFields([]);
+    }
+  }, [isOpen]);
+
+  const handleSelectAll = () => {
+    if (selectedFields.length === availableFields.length) {
+      setSelectedFields([]);
+    } else {
+      setSelectedFields(availableFields.map(field => field.id));
+    }
+  };
 
   const generateReport = () => {
     if (selectedFields.length === 0) return;
@@ -71,6 +91,30 @@ export function ReportDialog({ employees }: ReportDialogProps) {
     // Criar linhas de dados
     const rows = employees.map(employee => {
       return selectedFields.map(field => {
+        if (field === 'selectedClients') {
+          // Fetch and join client names from localStorage
+          const clients = JSON.parse(localStorage.getItem('tempClients') || '[]');
+          const clientNames = employee.selectedClients
+            .map(clientId => clients.find((c: any) => c.id === clientId)?.name || '')
+            .filter(Boolean)
+            .join(', ');
+          return clientNames;
+        }
+        if (field === 'selectedProjects') {
+          // Fetch and join project names from localStorage
+          const clients = JSON.parse(localStorage.getItem('tempClients') || '[]');
+          const projectNames = employee.selectedProjects
+            .map(projectId => {
+              for (const client of clients) {
+                const project = client.projects?.find((p: any) => p.id === projectId);
+                if (project) return project.name;
+              }
+              return '';
+            })
+            .filter(Boolean)
+            .join(', ');
+          return projectNames;
+        }
         if (field in employee) {
           const value = employee[field as keyof Employee];
           if (field === 'hire_date' || field === 'birth_date') {
@@ -100,7 +144,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Download className="w-4 h-4 mr-2" />
@@ -111,23 +155,33 @@ export function ReportDialog({ employees }: ReportDialogProps) {
         <DialogHeader>
           <DialogTitle>Gerar Relatório de Colaboradores</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          {availableFields.map((field) => (
-            <div key={field.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={field.id}
-                checked={selectedFields.includes(field.id)}
-                onCheckedChange={(checked) => {
-                  setSelectedFields(prev =>
-                    checked
-                      ? [...prev, field.id]
-                      : prev.filter(id => id !== field.id)
-                  );
-                }}
-              />
-              <Label htmlFor={field.id}>{field.label}</Label>
-            </div>
-          ))}
+        <div className="py-4">
+          <div className="flex items-center space-x-2 mb-4 border-b pb-4">
+            <Checkbox
+              id="select-all"
+              checked={selectedFields.length === availableFields.length}
+              onCheckedChange={handleSelectAll}
+            />
+            <Label htmlFor="select-all" className="font-medium">Selecionar Todos</Label>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {availableFields.map((field) => (
+              <div key={field.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={field.id}
+                  checked={selectedFields.includes(field.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedFields(prev =>
+                      checked
+                        ? [...prev, field.id]
+                        : prev.filter(id => id !== field.id)
+                    );
+                  }}
+                />
+                <Label htmlFor={field.id}>{field.label}</Label>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="flex justify-end">
           <Button
