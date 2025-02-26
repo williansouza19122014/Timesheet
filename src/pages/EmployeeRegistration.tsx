@@ -4,8 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Plus, Pencil } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NewEmployeeForm from "@/components/employee/NewEmployeeForm";
 import { ReportDialog } from "@/components/employee/ReportDialog";
 
@@ -22,8 +23,7 @@ interface Employee {
   cpf: string;
   birth_date: string;
   contract_type: string;
-  work_start_time: string;
-  work_end_time: string;
+  work_shift: string;
   address: {
     street: string;
     number: string;
@@ -42,12 +42,12 @@ const EmployeeRegistration = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
 
   const fetchEmployees = () => {
     try {
       const storedEmployees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
-      // Ordenar por nome em ordem alfabética
       const sortedEmployees = storedEmployees.sort((a: Employee, b: Employee) => 
         a.name.localeCompare(b.name)
       );
@@ -78,24 +78,29 @@ const EmployeeRegistration = () => {
   const activeEmployees = employees.filter(e => e.status === 'active' && !e.termination_date);
   const terminatedEmployees = employees.filter(e => e.status === 'inactive' || e.termination_date);
 
-  const renderEmployeeTable = (employees: Employee[], title: string) => (
-    <div className="space-y-2">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
+  const renderEmployeeTable = (employees: Employee[]) => (
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="whitespace-nowrap">Nome/CPF</TableHead>
+            <TableHead className="whitespace-nowrap">Contato</TableHead>
+            <TableHead className="whitespace-nowrap">Cargo/Depto</TableHead>
+            <TableHead className="whitespace-nowrap">Contrato/Horário</TableHead>
+            <TableHead className="whitespace-nowrap">Endereço</TableHead>
+            <TableHead className="whitespace-nowrap">Projetos</TableHead>
+            <TableHead className="whitespace-nowrap w-[100px]">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {employees.length === 0 ? (
             <TableRow>
-              <TableHead className="whitespace-nowrap">Nome/CPF</TableHead>
-              <TableHead className="whitespace-nowrap">Contato</TableHead>
-              <TableHead className="whitespace-nowrap">Cargo/Depto</TableHead>
-              <TableHead className="whitespace-nowrap">Contrato/Horário</TableHead>
-              <TableHead className="whitespace-nowrap">Endereço</TableHead>
-              <TableHead className="whitespace-nowrap">Projetos</TableHead>
-              <TableHead className="whitespace-nowrap w-[100px]">Ações</TableHead>
+              <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                Nenhum colaborador encontrado
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {employees.map((employee) => (
+          ) : (
+            employees.map((employee) => (
               <TableRow key={employee.id} className="text-xs">
                 <TableCell>
                   <div className="font-medium">{employee.name}</div>
@@ -114,9 +119,6 @@ const EmployeeRegistration = () => {
                 </TableCell>
                 <TableCell>
                   <div>{employee.contract_type}</div>
-                  <div className="text-muted-foreground">
-                    {employee.work_start_time} - {employee.work_end_time}
-                  </div>
                   <div className="text-muted-foreground">
                     Admissão: {new Date(employee.hire_date).toLocaleDateString()}
                     {employee.termination_date && (
@@ -145,21 +147,28 @@ const EmployeeRegistration = () => {
                     onClick={() => handleEdit(employee)}
                     className="h-8 w-8 p-0"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      <path d="m15 5 4 4" />
+                    </svg>
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
-            {employees.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                  Nenhum colaborador encontrado
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 
@@ -190,8 +199,6 @@ const EmployeeRegistration = () => {
         </div>
         
         <div className="flex gap-2">
-          <ReportDialog employees={employees} />
-          
           <Dialog open={showForm} onOpenChange={(open) => {
             setShowForm(open);
             if (!open) setEditingEmployee(null);
@@ -205,7 +212,7 @@ const EmployeeRegistration = () => {
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>
-                  {editingEmployee ? 'Editar Colaborador' : 'Cadastrar Novo Colaborador'}
+                  {editingEmployee ? 'Editar Colaborador' : 'Novo Colaborador'}
                 </DialogTitle>
               </DialogHeader>
               <NewEmployeeForm 
@@ -223,13 +230,23 @@ const EmployeeRegistration = () => {
               />
             </DialogContent>
           </Dialog>
+
+          <ReportDialog employees={employees} />
         </div>
       </div>
 
-      <div className="space-y-6">
-        {renderEmployeeTable(filteredActiveEmployees, "Colaboradores Ativos")}
-        {renderEmployeeTable(filteredTerminatedEmployees, "Colaboradores Desligados")}
-      </div>
+      <Tabs defaultValue="active" className="space-y-4" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="active">Ativos</TabsTrigger>
+          <TabsTrigger value="inactive">Inativos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="active">
+          {renderEmployeeTable(filteredActiveEmployees)}
+        </TabsContent>
+        <TabsContent value="inactive">
+          {renderEmployeeTable(filteredTerminatedEmployees)}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

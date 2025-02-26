@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Download, CheckSquare } from "lucide-react";
 import {
@@ -64,7 +63,6 @@ export function ReportDialog({ employees }: ReportDialogProps) {
     { id: "selectedProjects", label: "Projeto" }
   ];
 
-  // Reset selected fields when dialog is closed
   useEffect(() => {
     if (!isOpen) {
       setSelectedFields([]);
@@ -82,17 +80,14 @@ export function ReportDialog({ employees }: ReportDialogProps) {
   const generateReport = () => {
     if (selectedFields.length === 0) return;
 
-    // Criar cabeçalho do CSV
     const headers = selectedFields.map(field => {
       const fieldInfo = availableFields.find(f => f.id === field);
       return fieldInfo?.label || field;
     });
 
-    // Criar linhas de dados
     const rows = employees.map(employee => {
       return selectedFields.map(field => {
         if (field === 'selectedClients') {
-          // Fetch and join client names from localStorage
           const clients = JSON.parse(localStorage.getItem('tempClients') || '[]');
           const clientNames = employee.selectedClients
             .map(clientId => clients.find((c: any) => c.id === clientId)?.name || '')
@@ -101,7 +96,6 @@ export function ReportDialog({ employees }: ReportDialogProps) {
           return clientNames;
         }
         if (field === 'selectedProjects') {
-          // Fetch and join project names from localStorage
           const clients = JSON.parse(localStorage.getItem('tempClients') || '[]');
           const projectNames = employee.selectedProjects
             .map(projectId => {
@@ -126,13 +120,11 @@ export function ReportDialog({ employees }: ReportDialogProps) {
       });
     });
 
-    // Combinar cabeçalho e linhas
     const csvContent = [
       headers.join(','),
       ...rows.map(row => row.join(','))
     ].join('\n');
 
-    // Criar e baixar arquivo
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -153,7 +145,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-md bg-white">
         <DialogHeader>
-          <DialogTitle>Gerar Relatório de Colaboradores</DialogTitle>
+          <DialogTitle>Relatório de Colaboradores</DialogTitle>
         </DialogHeader>
         <div className="py-4">
           <div className="flex items-center space-x-2 mb-4 border-b pb-4">
