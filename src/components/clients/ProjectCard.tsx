@@ -1,15 +1,15 @@
 
 import { useState } from "react";
 import { Project, TeamMember } from "@/types/clients";
-import ProjectTeamForm from "./ProjectTeamForm";
-import ProjectTeamMember from "./ProjectTeamMember";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ProjectCardProps {
   project: Project;
   showTeamForm: boolean;
   onShowTeamForm: () => void;
-  onAddTeamMember: (member: TeamMember) => void;
   onEditTeamMember: (memberId: string, endDate: string) => void;
 }
 
@@ -17,7 +17,6 @@ const ProjectCard = ({
   project,
   showTeamForm,
   onShowTeamForm,
-  onAddTeamMember,
   onEditTeamMember
 }: ProjectCardProps) => {
   const [showCurrentTeam, setShowCurrentTeam] = useState(false);
@@ -45,11 +44,11 @@ const ProjectCard = ({
             </span>
             <span>|</span>
             <span>
-              Data de Início: {project.startDate ? new Date(project.startDate).toLocaleDateString() : "___/___/_____"}
+              Data de Início: {project.startDate ? format(new Date(project.startDate), 'dd/MM/yyyy', { locale: ptBR }) : "___/___/_____"}
             </span>
             <span>|</span>
             <span>
-              Data de Fim: {project.endDate ? new Date(project.endDate).toLocaleDateString() : "___/___/_____"}
+              Data de Fim: {project.endDate ? format(new Date(project.endDate), 'dd/MM/yyyy', { locale: ptBR }) : "___/___/_____"}
             </span>
           </div>
           {project.leader && (
@@ -64,21 +63,13 @@ const ProjectCard = ({
         onClick={onShowTeamForm}
         className="w-full flex items-center justify-between p-4 border-t hover:bg-gray-50 transition-colors"
       >
-        <span className="font-medium">Gerenciar Equipe</span>
+        <span className="font-medium">Visualizar Equipe</span>
         {showTeamForm ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
       </button>
 
       {showTeamForm && (
         <div className="border-t p-4">
           <div className="space-y-4">
-            <div>
-              <h5 className="font-medium mb-2">Adicionar Membro</h5>
-              <ProjectTeamForm
-                onAddMember={onAddTeamMember}
-                hasLeader={!!project.leader}
-              />
-            </div>
-            
             <div>
               <button
                 onClick={() => setShowCurrentTeam(!showCurrentTeam)}
@@ -88,22 +79,26 @@ const ProjectCard = ({
                 {showCurrentTeam ? <ChevronUp /> : <ChevronDown />}
               </button>
               {showCurrentTeam && (
-                <div className="mt-2 space-y-2">
+                <div className="mt-4 space-y-4">
                   {activeMembers.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nenhum membro ativo na equipe</p>
                   ) : (
                     activeMembers.map(member => (
-                      <ProjectTeamMember
-                        key={member.id}
-                        id={member.id}
-                        name={member.name}
-                        email={member.email}
-                        startDate={member.startDate}
-                        endDate={member.endDate}
-                        role={member.role}
-                        isLeader={member.isLeader}
-                        onEdit={onEditTeamMember}
-                      />
+                      <div key={member.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">{member.name}</h4>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Função: {member.role}
+                            {member.isLeader && (
+                              <Badge className="ml-2" variant="secondary">Líder</Badge>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-sm text-right text-muted-foreground">
+                          <p>Início: {format(new Date(member.startDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                        </div>
+                      </div>
                     ))
                   )}
                 </div>
@@ -120,19 +115,26 @@ const ProjectCard = ({
                   {showPreviousMembers ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showPreviousMembers && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-4 space-y-4">
                     {inactiveMembers.map(member => (
-                      <ProjectTeamMember
-                        key={member.id}
-                        id={member.id}
-                        name={member.name}
-                        email={member.email}
-                        startDate={member.startDate}
-                        endDate={member.endDate}
-                        role={member.role}
-                        isLeader={member.isLeader}
-                        onEdit={onEditTeamMember}
-                      />
+                      <div key={member.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">{member.name}</h4>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Função: {member.role}
+                            {member.isLeader && (
+                              <Badge className="ml-2" variant="secondary">Líder</Badge>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-sm text-right text-muted-foreground">
+                          <p>Início: {format(new Date(member.startDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          {member.endDate && (
+                            <p>Fim: {format(new Date(member.endDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}

@@ -1,6 +1,6 @@
 
 import { ChevronDown, ChevronUp, Plus, Pencil } from "lucide-react";
-import { Client, Project, TeamMember } from "@/types/clients";
+import { Client, Project } from "@/types/clients";
 import ProjectCard from "./ProjectCard";
 import ProjectForm from "./ProjectForm";
 
@@ -14,9 +14,7 @@ interface ClientCardProps {
   onAddProject: (project: Project) => void;
   onCancelProjectForm: () => void;
   onShowTeamForm: (projectId: string) => void;
-  onAddTeamMember: (projectId: string, member: TeamMember, isLeader: boolean) => void;
   onEditTeamMember: (projectId: string, memberId: string, endDate: string) => void;
-  onRemoveTeamMember: (projectId: string, memberId: string) => void;
   onEdit: () => void;
 }
 
@@ -30,9 +28,7 @@ const ClientCard = ({
   onAddProject,
   onCancelProjectForm,
   onShowTeamForm,
-  onAddTeamMember,
   onEditTeamMember,
-  onRemoveTeamMember,
   onEdit
 }: ClientCardProps) => {
   return (
@@ -51,7 +47,7 @@ const ClientCard = ({
           </button>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
+          <span className={`px-2 py-0.5 rounded-full ${
             !client.endDate 
               ? "bg-green-100 text-green-700"
               : "bg-gray-100 text-gray-700"
@@ -109,7 +105,6 @@ const ClientCard = ({
                 project={project}
                 showTeamForm={showTeamForm === project.id}
                 onShowTeamForm={() => onShowTeamForm(project.id)}
-                onAddTeamMember={(member) => onAddTeamMember(project.id, member, !project.leader && member.isLeader)}
                 onEditTeamMember={(memberId, endDate) => onEditTeamMember(project.id, memberId, endDate)}
               />
             ))}
