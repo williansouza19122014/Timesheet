@@ -46,22 +46,19 @@ export const ProjectsSection = ({
     fetchClients();
   }, []);
 
-  const fetchClients = async () => {
+  const fetchClients = () => {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select(`
-          id,
-          name,
-          projects (
-            id,
-            name
-          )
-        `);
-
-      if (error) throw error;
-      
-      setClients(data || []);
+      // Obtém os clientes do localStorage
+      const savedClients = localStorage.getItem('tempClients');
+      if (savedClients) {
+        setClients(JSON.parse(savedClients));
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Nenhum cliente encontrado",
+          description: "Por favor, cadastre clientes primeiro na aba de Clientes"
+        });
+      }
     } catch (error: any) {
       console.error('Erro ao carregar clientes:', error);
       toast({
@@ -109,6 +106,11 @@ export const ProjectsSection = ({
                 <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
               </div>
             ))}
+            {currentClientProjects.length === 0 && (
+              <p className="text-sm text-muted-foreground col-span-2">
+                Este cliente não possui projetos cadastrados
+              </p>
+            )}
           </div>
         </div>
       )}
