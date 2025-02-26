@@ -7,6 +7,8 @@ import VacationsHeader from "@/components/vacations/VacationsHeader";
 import ExpiringPeriodsAlert from "@/components/vacations/ExpiringPeriodsAlert";
 import PeriodsTable from "@/components/vacations/PeriodsTable";
 import RequestsTable from "@/components/vacations/RequestsTable";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Vacations = () => {
   const [periods, setPeriods] = useState<VacationPeriod[]>([]);
@@ -69,13 +71,13 @@ const Vacations = () => {
       );
 
       return [
-        `${format(new Date(period.start_date), 'dd/MM/yyyy')} - ${format(new Date(period.end_date), 'dd/MM/yyyy')}`,
+        `${format(new Date(period.start_date), 'dd/MM/yyyy', { locale: ptBR })} - ${format(new Date(period.end_date), 'dd/MM/yyyy', { locale: ptBR })}`,
         period.days_available,
-        period.limit_date ? format(new Date(period.limit_date), 'dd/MM/yyyy') : '--',
-        request?.start_date ? format(new Date(request.start_date), 'dd/MM/yyyy') : '--',
-        request?.end_date ? format(new Date(request.end_date), 'dd/MM/yyyy') : '--',
+        period.limit_date ? format(new Date(period.limit_date), 'dd/MM/yyyy', { locale: ptBR }) : '--',
+        request?.start_date ? format(new Date(request.start_date), 'dd/MM/yyyy', { locale: ptBR }) : '--',
+        request?.end_date ? format(new Date(request.end_date), 'dd/MM/yyyy', { locale: ptBR }) : '--',
         period.sold_days ? `${period.sold_days} DIAS` : '--',
-        period.payment_date ? format(new Date(period.payment_date), 'dd/MM/yyyy') : '--'
+        period.payment_date ? format(new Date(period.payment_date), 'dd/MM/yyyy', { locale: ptBR }) : '--'
       ];
     });
 
