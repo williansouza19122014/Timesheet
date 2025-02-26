@@ -21,8 +21,7 @@ interface Employee {
   cpf: string;
   birth_date: string;
   contract_type: string;
-  work_start_time: string;
-  work_end_time: string;
+  work_shift: string;
   address: {
     street: string;
     number: string;
