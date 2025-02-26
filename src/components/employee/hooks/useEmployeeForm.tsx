@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Client } from "@/types/clients";
+import { Client, Project } from "@/types/clients";
 import { supabase } from "@/lib/supabase";
 
 interface Address {
@@ -32,7 +32,11 @@ interface EmployeeFormData {
   selectedProjects: string[];
 }
 
-export const useEmployeeForm = (onSuccess: () => void) => {
+interface Props {
+  onSuccess: () => void;
+}
+
+export const useEmployeeForm = ({ onSuccess }: Props) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);

@@ -23,7 +23,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     handleInputChange,
     handleProjectToggle,
     handleSubmit
-  } = useEmployeeForm(onSuccess);
+  } = useEmployeeForm({ onSuccess });
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-2">
