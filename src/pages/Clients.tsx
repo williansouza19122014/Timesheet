@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Client, Project, TeamMember } from "@/types/clients";
@@ -7,12 +7,30 @@ import ClientForm from "@/components/clients/ClientForm";
 import ClientCard from "@/components/clients/ClientCard";
 
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<Client[]>(() => {
+    // Inicializa o estado com dados do localStorage se existirem
+    const savedClients = localStorage.getItem('tempClients');
+    return savedClients ? JSON.parse(savedClients) : [];
+  });
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewProjectForm, setShowNewProjectForm] = useState<string | null>(null);
   const [showTeamForm, setShowTeamForm] = useState<{clientId: string, projectId: string} | null>(null);
-  const [expandedClients, setExpandedClients] = useState<string[]>([]);
+  const [expandedClients, setExpandedClients] = useState<string[]>(() => {
+    // Inicializa o estado de expansão dos clientes
+    const savedExpanded = localStorage.getItem('tempExpandedClients');
+    return savedExpanded ? JSON.parse(savedExpanded) : [];
+  });
+
+  // Salva os clientes no localStorage sempre que houver mudanças
+  useEffect(() => {
+    localStorage.setItem('tempClients', JSON.stringify(clients));
+  }, [clients]);
+
+  // Salva o estado de expansão no localStorage
+  useEffect(() => {
+    localStorage.setItem('tempExpandedClients', JSON.stringify(expandedClients));
+  }, [expandedClients]);
 
   const handleAddClient = (newClient: Client) => {
     if (editingClient) {
@@ -75,16 +93,29 @@ const Clients = () => {
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-4xl font-bold">Clients and Projects</h1>
-        <button
-          onClick={() => {
-            setEditingClient(null);
-            setShowNewClientForm(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Cliente
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              localStorage.removeItem('tempClients');
+              localStorage.removeItem('tempExpandedClients');
+              setClients([]);
+              setExpandedClients([]);
+            }}
+            className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            Limpar Dados
+          </button>
+          <button
+            onClick={() => {
+              setEditingClient(null);
+              setShowNewClientForm(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Cliente
+          </button>
+        </div>
       </div>
 
       {(showNewClientForm || editingClient) && (
