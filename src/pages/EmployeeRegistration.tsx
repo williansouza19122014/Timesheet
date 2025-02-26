@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -92,8 +91,7 @@ const EmployeeRegistration = () => {
 
   return (
     <div className="container mx-auto py-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Colaboradores</h1>
+      <div className="flex justify-end mb-4">
         <div className="flex gap-2">
           <ReportDialog employees={employees} />
           
