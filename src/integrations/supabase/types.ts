@@ -356,39 +356,83 @@ export type Database = {
       }
       system_users: {
         Row: {
+          additional_notes: string | null
+          address: Json | null
+          birth_date: string | null
+          contract_type: string | null
+          cpf: string | null
           created_at: string | null
+          department: string | null
           email: string
           hire_date: string
           id: string
+          manager_id: string | null
           name: string
+          phone: string | null
+          position: string | null
           status: Database["public"]["Enums"]["user_status"] | null
           termination_date: string | null
           updated_at: string | null
           user_id: string | null
+          work_end_time: string | null
+          work_schedule: Json | null
+          work_start_time: string | null
         }
         Insert: {
+          additional_notes?: string | null
+          address?: Json | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
           created_at?: string | null
+          department?: string | null
           email: string
           hire_date: string
           id?: string
+          manager_id?: string | null
           name: string
+          phone?: string | null
+          position?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           termination_date?: string | null
           updated_at?: string | null
           user_id?: string | null
+          work_end_time?: string | null
+          work_schedule?: Json | null
+          work_start_time?: string | null
         }
         Update: {
+          additional_notes?: string | null
+          address?: Json | null
+          birth_date?: string | null
+          contract_type?: string | null
+          cpf?: string | null
           created_at?: string | null
+          department?: string | null
           email?: string
           hire_date?: string
           id?: string
+          manager_id?: string | null
           name?: string
+          phone?: string | null
+          position?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           termination_date?: string | null
           updated_at?: string | null
           user_id?: string | null
+          work_end_time?: string | null
+          work_schedule?: Json | null
+          work_start_time?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_users_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_entries: {
         Row: {

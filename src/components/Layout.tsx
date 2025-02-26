@@ -11,6 +11,7 @@ import {
   Bell,
   KanbanSquare,
   Menu,
+  UserPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,11 @@ const Layout = () => {
       name: "Equipe",
       href: "/equipe",
       icon: Users,
+    },
+    {
+      name: "Cadastro de Colaborador",
+      href: "/cadastro-colaborador",
+      icon: UserPlus,
     },
     {
       name: "Relatórios",
