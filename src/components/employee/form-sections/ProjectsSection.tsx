@@ -11,17 +11,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-
-interface Client {
-  id: string;
-  name: string;
-  projects: Project[];
-}
-
-interface Project {
-  id: string;
-  name: string;
-}
+import { Client } from "@/types/clients";
 
 interface ProjectsSectionProps {
   clients: Client[];
@@ -29,7 +19,7 @@ interface ProjectsSectionProps {
   selectedProjects: string[];
   setSelectedClient: (clientId: string) => void;
   handleProjectToggle: (projectId: string) => void;
-  setClients: (clients: Client[]) => void;
+  setClients: React.Dispatch<React.SetStateAction<Client[]>>;
 }
 
 export const ProjectsSection = ({
@@ -48,10 +38,16 @@ export const ProjectsSection = ({
 
   const fetchClients = () => {
     try {
-      // Obtém os clientes do localStorage
       const savedClients = localStorage.getItem('tempClients');
       if (savedClients) {
-        setClients(JSON.parse(savedClients));
+        const parsedClients = JSON.parse(savedClients);
+        // Garantindo que os clientes tenham todas as propriedades necessárias
+        const validClients = parsedClients.map((client: any) => ({
+          ...client,
+          cnpj: client.cnpj || "",
+          startDate: client.startDate || new Date().toISOString(),
+        }));
+        setClients(validClients);
       } else {
         toast({
           variant: "destructive",
