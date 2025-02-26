@@ -8,15 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { WorkShiftSection } from "./WorkShiftSection";
+import InputMask from "react-input-mask";
 
 interface WorkInfoSectionProps {
   formData: {
     position: string;
     department: string;
     hire_date: string;
+    termination_date?: string;
     contract_type: string;
-    work_start_time: string;
-    work_end_time: string;
+    work_shift: string;
   };
   handleInputChange: (field: string, value: string) => void;
 }
@@ -59,6 +61,16 @@ export const WorkInfoSection = ({
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="termination_date">Data de Demissão</Label>
+        <Input
+          id="termination_date"
+          type="date"
+          value={formData.termination_date}
+          onChange={(e) => handleInputChange('termination_date', e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="contract_type">Tipo de Contrato *</Label>
         <Select
           value={formData.contract_type}
@@ -76,25 +88,10 @@ export const WorkInfoSection = ({
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="work_start_time">Horário de Entrada *</Label>
-        <Input
-          id="work_start_time"
-          type="time"
-          value={formData.work_start_time}
-          onChange={(e) => handleInputChange('work_start_time', e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="work_end_time">Horário de Saída *</Label>
-        <Input
-          id="work_end_time"
-          type="time"
-          value={formData.work_end_time}
-          onChange={(e) => handleInputChange('work_end_time', e.target.value)}
-          required
+      <div className="space-y-2 md:col-span-2">
+        <WorkShiftSection
+          selectedShift={formData.work_shift}
+          onShiftChange={(value) => handleInputChange('work_shift', value)}
         />
       </div>
     </div>

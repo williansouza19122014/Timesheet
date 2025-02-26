@@ -1,6 +1,7 @@
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import InputMask from "react-input-mask";
 
 interface PersonalInfoSectionProps {
   formData: {
@@ -31,13 +32,20 @@ export const PersonalInfoSection = ({
 
       <div className="space-y-2">
         <Label htmlFor="cpf">CPF *</Label>
-        <Input
-          id="cpf"
+        <InputMask
+          mask="999.999.999-99"
           value={formData.cpf}
           onChange={(e) => handleInputChange('cpf', e.target.value)}
-          placeholder="Apenas números"
-          required
-        />
+        >
+          {(inputProps: any) => (
+            <Input
+              {...inputProps}
+              id="cpf"
+              placeholder="000.000.000-00"
+              required
+            />
+          )}
+        </InputMask>
       </div>
 
       <div className="space-y-2">
@@ -64,13 +72,20 @@ export const PersonalInfoSection = ({
 
       <div className="space-y-2">
         <Label htmlFor="phone">Telefone *</Label>
-        <Input
-          id="phone"
+        <InputMask
+          mask="(99) 99999-9999"
           value={formData.phone}
           onChange={(e) => handleInputChange('phone', e.target.value)}
-          placeholder="Com DDD"
-          required
-        />
+        >
+          {(inputProps: any) => (
+            <Input
+              {...inputProps}
+              id="phone"
+              placeholder="(00) 00000-0000"
+              required
+            />
+          )}
+        </InputMask>
       </div>
     </div>
   );

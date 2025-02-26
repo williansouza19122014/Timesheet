@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types/clients";
@@ -48,10 +47,9 @@ interface EmployeeFormData {
   position: string;
   department: string;
   hire_date: string;
-  termination_date?: string;  // Added this line
+  termination_date?: string;
   contract_type: string;
-  work_start_time: string;
-  work_end_time: string;
+  work_shift: string;
   address: Address;
   manager_id?: string;
   additional_notes?: string;
@@ -73,10 +71,9 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
     position: editingEmployee?.position || "",
     department: editingEmployee?.department || "",
     hire_date: editingEmployee?.hire_date || new Date().toISOString().split('T')[0],
-    termination_date: editingEmployee?.termination_date || "",  // Added this line
+    termination_date: editingEmployee?.termination_date || "",
     contract_type: editingEmployee?.contract_type || "",
-    work_start_time: editingEmployee?.work_start_time || "",
-    work_end_time: editingEmployee?.work_end_time || "",
+    work_shift: editingEmployee?.work_shift || "",
     address: editingEmployee?.address || {
       street: "",
       number: "",
@@ -137,7 +134,6 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
       const employees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
       
       if (editingEmployee) {
-        // Update existing employee
         const updatedEmployees = employees.map((emp: Employee) => 
           emp.id === editingEmployee.id 
             ? { 
@@ -149,7 +145,6 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
         );
         localStorage.setItem('tempEmployees', JSON.stringify(updatedEmployees));
       } else {
-        // Create new employee
         const newEmployee = {
           id: crypto.randomUUID(),
           ...formData,
@@ -160,7 +155,6 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
         employees.push(newEmployee);
         localStorage.setItem('tempEmployees', JSON.stringify(employees));
 
-        // If there are projects selected, save project members
         if (formData.selectedProjects.length > 0) {
           const projectMembers = JSON.parse(localStorage.getItem('tempProjectMembers') || '[]');
           const newProjectMembers = formData.selectedProjects.map(projectId => ({
@@ -175,7 +169,6 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
           localStorage.setItem('tempProjectMembers', JSON.stringify(projectMembers));
         }
 
-        // Save client relationships
         if (formData.selectedClients.length > 0) {
           const clientEmployees = JSON.parse(localStorage.getItem('tempClientEmployees') || '[]');
           const newClientEmployees = formData.selectedClients.map(clientId => ({
