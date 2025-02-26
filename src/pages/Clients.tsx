@@ -5,90 +5,131 @@ import { useToast } from "@/hooks/use-toast";
 import { Client, Project, TeamMember } from "@/types/clients";
 import ClientForm from "@/components/clients/ClientForm";
 import ClientCard from "@/components/clients/ClientCard";
+import { supabase } from "@/lib/supabase";
 
 const Clients = () => {
-  const [clients, setClients] = useState<Client[]>(() => {
-    const savedClients = localStorage.getItem('tempClients');
-    return savedClients ? JSON.parse(savedClients) : [];
-  });
+  const [clients, setClients] = useState<Client[]>([]);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showNewProjectForm, setShowNewProjectForm] = useState<string | null>(null);
   const [showTeamForm, setShowTeamForm] = useState<{clientId: string, projectId: string} | null>(null);
-  const [expandedClients, setExpandedClients] = useState<string[]>(() => {
-    const savedExpanded = localStorage.getItem('tempExpandedClients');
-    return savedExpanded ? JSON.parse(savedExpanded) : [];
-  });
+  const [expandedClients, setExpandedClients] = useState<string[]>([]);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    localStorage.setItem('tempClients', JSON.stringify(clients));
-  }, [clients]);
+  const fetchClients = async () => {
+    try {
+      // Buscar clientes e projetos
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            description,
+            start_date,
+            end_date
+          )
+        `);
 
-  useEffect(() => {
-    localStorage.setItem('tempExpandedClients', JSON.stringify(expandedClients));
-  }, [expandedClients]);
+      if (clientsError) throw clientsError;
 
-  const handleAddClient = (newClient: Client) => {
-    if (editingClient) {
-      setClients(prev => prev.map(client => 
-        client.id === editingClient.id ? newClient : client
-      ));
-      setEditingClient(null);
-    } else {
-      setClients(prev => [...prev, newClient]);
+      // Para cada projeto, buscar os membros da equipe
+      const clientsWithTeams = await Promise.all(clientsData.map(async (client) => {
+        const projectsWithTeams = await Promise.all(client.projects.map(async (project) => {
+          const { data: teamMembers, error: teamError } = await supabase
+            .from('project_members')
+            .select(`
+              id,
+              start_date,
+              end_date,
+              role,
+              is_leader,
+              system_users (
+                id,
+                name,
+                email
+              )
+            `)
+            .eq('project_id', project.id)
+            .is('end_date', null);
+
+          if (teamError) throw teamError;
+
+          // Formatar os membros da equipe
+          const team = teamMembers.map(member => ({
+            id: member.id,
+            name: member.system_users.name,
+            email: member.system_users.email,
+            startDate: member.start_date,
+            endDate: member.end_date,
+            role: member.role,
+            isLeader: member.is_leader
+          }));
+
+          // Buscar membros anteriores da equipe
+          const { data: previousMembers, error: previousError } = await supabase
+            .from('project_members')
+            .select(`
+              id,
+              start_date,
+              end_date,
+              role,
+              is_leader,
+              system_users (
+                id,
+                name,
+                email
+              )
+            `)
+            .eq('project_id', project.id)
+            .not('end_date', 'is', null);
+
+          if (previousError) throw previousError;
+
+          const formattedPreviousMembers = previousMembers.map(member => ({
+            id: member.id,
+            name: member.system_users.name,
+            email: member.system_users.email,
+            startDate: member.start_date,
+            endDate: member.end_date,
+            role: member.role,
+            isLeader: member.is_leader
+          }));
+
+          return {
+            ...project,
+            team,
+            previousMembers: formattedPreviousMembers,
+            leader: team.find(member => member.isLeader)
+          };
+        }));
+
+        return {
+          ...client,
+          projects: projectsWithTeams
+        };
+      }));
+
+      setClients(clientsWithTeams);
+    } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar clientes",
+        description: error.message
+      });
     }
-    setShowNewClientForm(false);
   };
 
-  const handleAddProject = (clientId: string, newProject: Project) => {
-    setClients(prev => prev.map(client => {
-      if (client.id === clientId) {
-        return {
-          ...client,
-          projects: [...(client.projects || []), newProject]
-        };
-      }
-      return client;
-    }));
-
-    setShowNewProjectForm(null);
-    setShowTeamForm({ clientId, projectId: newProject.id });
-  };
-
-  const handleEditTeamMember = (clientId: string, projectId: string, memberId: string, endDate: string) => {
-    setClients(prev => prev.map(client => {
-      if (client.id === clientId) {
-        return {
-          ...client,
-          projects: client.projects.map(project => {
-            if (project.id === projectId) {
-              const updatedMember = project.team.find(m => m.id === memberId);
-              if (!updatedMember) return project;
-
-              const updatedTeam = project.team.filter(m => m.id !== memberId);
-              const newMember = { ...updatedMember, endDate };
-              
-              return {
-                ...project,
-                team: endDate ? updatedTeam : [...updatedTeam, newMember],
-                previousMembers: endDate 
-                  ? [...(project.previousMembers || []), newMember]
-                  : project.previousMembers,
-                ...(newMember.isLeader && endDate && { leader: undefined })
-              };
-            }
-            return project;
-          })
-        };
-      }
-      return client;
-    }));
-  };
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-4xl font-bold">Clients and Projects</h1>
+        <h1 className="text-4xl font-bold">Clientes e Projetos</h1>
         <button
           onClick={() => {
             setEditingClient(null);
@@ -103,16 +144,28 @@ const Clients = () => {
 
       {(showNewClientForm || editingClient) && (
         <ClientForm
-          onSubmit={handleAddClient}
+          onSubmit={async (client) => {
+            if (editingClient) {
+              const updatedClients = clients.map(c => 
+                c.id === editingClient.id ? client : c
+              );
+              setClients(updatedClients);
+              setEditingClient(null);
+            } else {
+              setClients(prev => [...prev, client]);
+            }
+            setShowNewClientForm(false);
+            await fetchClients(); // Recarregar dados após alteração
+          }}
           onCancel={() => {
             setShowNewClientForm(false);
             setEditingClient(null);
           }}
-          editingClient={editingClient || undefined}
+          editingClient={editingClient}
         />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         {clients.map(client => (
           <ClientCard
             key={client.id}
@@ -128,11 +181,46 @@ const Clients = () => {
               );
             }}
             onShowNewProjectForm={() => setShowNewProjectForm(client.id)}
-            onAddProject={(project) => handleAddProject(client.id, project)}
+            onAddProject={async (project) => {
+              const updatedClients = clients.map(c => {
+                if (c.id === client.id) {
+                  return {
+                    ...c,
+                    projects: [...c.projects, project]
+                  };
+                }
+                return c;
+              });
+              setClients(updatedClients);
+              setShowNewProjectForm(null);
+              await fetchClients(); // Recarregar dados após alteração
+            }}
             onCancelProjectForm={() => setShowNewProjectForm(null)}
             onShowTeamForm={(projectId) => setShowTeamForm({ clientId: client.id, projectId })}
-            onEditTeamMember={(projectId, memberId, endDate) => 
-              handleEditTeamMember(client.id, projectId, memberId, endDate)}
+            onEditTeamMember={async (projectId, memberId, endDate) => {
+              try {
+                const { error } = await supabase
+                  .from('project_members')
+                  .update({ end_date: endDate })
+                  .eq('id', memberId);
+
+                if (error) throw error;
+
+                await fetchClients(); // Recarregar dados após alteração
+                
+                toast({
+                  title: "Membro atualizado com sucesso",
+                  description: "As informações do membro da equipe foram atualizadas."
+                });
+              } catch (error: any) {
+                console.error('Erro ao atualizar membro:', error);
+                toast({
+                  variant: "destructive",
+                  title: "Erro ao atualizar membro",
+                  description: error.message
+                });
+              }
+            }}
             onEdit={() => {
               setEditingClient(client);
               setShowNewClientForm(true);
