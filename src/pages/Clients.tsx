@@ -41,57 +41,6 @@ const Clients = () => {
     setShowTeamForm({ clientId, projectId: newProject.id });
   };
 
-  const handleAddTeamMember = (clientId: string, projectId: string, member: TeamMember, isLeader: boolean = false) => {
-    setClients(prev => prev.map(client => {
-      if (client.id === clientId) {
-        return {
-          ...client,
-          projects: client.projects.map(project => {
-            if (project.id === projectId) {
-              const updatedMember = { ...member, isLeader };
-              return {
-                ...project,
-                team: [...project.team, updatedMember],
-                ...(isLeader && { leader: updatedMember })
-              };
-            }
-            return project;
-          })
-        };
-      }
-      return client;
-    }));
-  };
-
-  const handleRemoveTeamMember = (clientId: string, projectId: string, memberId: string) => {
-    setClients(prev => prev.map(client => {
-      if (client.id === clientId) {
-        return {
-          ...client,
-          projects: client.projects.map(project => {
-            if (project.id === projectId) {
-              const removedMember = project.team.find(m => m.id === memberId);
-              const updatedTeam = project.team.filter(m => m.id !== memberId);
-              const updatedPreviousMembers = [
-                ...(project.previousMembers || []),
-                ...(removedMember ? [removedMember] : [])
-              ];
-
-              return {
-                ...project,
-                team: updatedTeam,
-                previousMembers: updatedPreviousMembers,
-                ...(project.leader?.id === memberId && { leader: undefined })
-              };
-            }
-            return project;
-          })
-        };
-      }
-      return client;
-    }));
-  };
-
   const handleEditTeamMember = (clientId: string, projectId: string, memberId: string, endDate: string) => {
     setClients(prev => prev.map(client => {
       if (client.id === clientId) {
@@ -168,12 +117,8 @@ const Clients = () => {
             onAddProject={(project) => handleAddProject(client.id, project)}
             onCancelProjectForm={() => setShowNewProjectForm(null)}
             onShowTeamForm={(projectId) => setShowTeamForm({ clientId: client.id, projectId })}
-            onAddTeamMember={(projectId, member, isLeader) => 
-              handleAddTeamMember(client.id, projectId, member, isLeader)}
             onEditTeamMember={(projectId, memberId, endDate) => 
               handleEditTeamMember(client.id, projectId, memberId, endDate)}
-            onRemoveTeamMember={(projectId, memberId) => 
-              handleRemoveTeamMember(client.id, projectId, memberId)}
             onEdit={() => {
               setEditingClient(client);
               setShowNewClientForm(true);
