@@ -48,6 +48,7 @@ interface EmployeeFormData {
   position: string;
   department: string;
   hire_date: string;
+  termination_date?: string;  // Added this line
   contract_type: string;
   work_start_time: string;
   work_end_time: string;
@@ -72,6 +73,7 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
     position: editingEmployee?.position || "",
     department: editingEmployee?.department || "",
     hire_date: editingEmployee?.hire_date || new Date().toISOString().split('T')[0],
+    termination_date: editingEmployee?.termination_date || "",  // Added this line
     contract_type: editingEmployee?.contract_type || "",
     work_start_time: editingEmployee?.work_start_time || "",
     work_end_time: editingEmployee?.work_end_time || "",
@@ -151,7 +153,7 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
         const newEmployee = {
           id: crypto.randomUUID(),
           ...formData,
-          status: 'active',
+          status: formData.termination_date ? 'inactive' : 'active',
           created_at: new Date().toISOString(),
         };
         
