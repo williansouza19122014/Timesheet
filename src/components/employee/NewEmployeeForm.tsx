@@ -8,11 +8,40 @@ import { AddressSection } from "./form-sections/AddressSection";
 import { ProjectsSection } from "./form-sections/ProjectsSection";
 import { useEmployeeForm } from "./hooks/useEmployeeForm";
 
-interface NewEmployeeFormProps {
-  onSuccess: () => void;
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  position: string;
+  department: string;
+  hire_date: string;
+  termination_date?: string;
+  status: string;
+  cpf: string;
+  birth_date: string;
+  contract_type: string;
+  work_start_time: string;
+  work_end_time: string;
+  address: {
+    street: string;
+    number: string;
+    complement?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  };
+  selectedClients: string[];
+  selectedProjects: string[];
 }
 
-const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
+interface NewEmployeeFormProps {
+  onSuccess: () => void;
+  editingEmployee?: Employee | null;
+}
+
+const NewEmployeeForm = ({ onSuccess, editingEmployee }: NewEmployeeFormProps) => {
   const {
     formData,
     isLoading,
@@ -24,7 +53,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     handleProjectToggle,
     handleClientToggle,
     handleSubmit
-  } = useEmployeeForm({ onSuccess });
+  } = useEmployeeForm({ onSuccess, editingEmployee });
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-2">
@@ -83,7 +112,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
           disabled={isLoading}
           size="sm"
         >
-          {isLoading ? "Cadastrando..." : "Cadastrar Colaborador"}
+          {isLoading ? "Cadastrando..." : editingEmployee ? "Salvar Alterações" : "Cadastrar Colaborador"}
         </Button>
       </div>
     </form>
