@@ -481,6 +481,7 @@ export type Database = {
       }
       vacation_periods: {
         Row: {
+          contract_type: string | null
           created_at: string | null
           days_available: number
           end_date: string
@@ -494,6 +495,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          contract_type?: string | null
           created_at?: string | null
           days_available?: number
           end_date: string
@@ -507,6 +509,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          contract_type?: string | null
           created_at?: string | null
           days_available?: number
           end_date?: string
