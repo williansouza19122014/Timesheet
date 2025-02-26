@@ -10,8 +10,9 @@ import {
   Bell,
   KanbanSquare,
   Menu,
-  UserPlus,
+  Users,
   Calendar,
+  ChevronLeft,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -49,9 +50,9 @@ const Layout = () => {
       icon: Building2,
     },
     {
-      name: "Cadastro de Colaborador",
+      name: "Colaboradores",
       href: "/cadastro-colaborador",
-      icon: UserPlus,
+      icon: Users,
     },
     {
       name: "Relatórios",
@@ -79,16 +80,34 @@ const Layout = () => {
         {/* Sidebar */}
         <aside 
           className={cn(
-            "fixed inset-y-0 z-50 flex w-72 flex-col transition-transform duration-300 ease-in-out bg-white border-r",
-            sidebarOpen ? "translate-x-0" : "-translate-x-72"
+            "fixed inset-y-0 z-50 flex flex-col transition-all duration-300 ease-in-out bg-white border-r",
+            sidebarOpen ? "w-60" : "w-16"
           )}
         >
-          <div className="flex h-16 items-center gap-2 px-6 border-b">
-            <Clock className="w-8 h-8 text-accent" />
-            <span className="text-xl font-semibold">Timesheet</span>
+          <div className={cn(
+            "flex h-16 items-center gap-2 px-4 border-b",
+            sidebarOpen ? "justify-between" : "justify-center"
+          )}>
+            {sidebarOpen && (
+              <>
+                <Clock className="w-6 h-6 text-accent" />
+                <span className="text-lg font-semibold">Timesheet</span>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className={cn(
+                "h-4 w-4 transition-transform",
+                !sidebarOpen && "rotate-180"
+              )} />
+            </Button>
           </div>
 
-          <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+          <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
             <div className="space-y-1">
               {navigation.map((item) => (
                 <NavLink
@@ -97,12 +116,13 @@ const Layout = () => {
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-colors hover:text-gray-900 hover:bg-gray-100",
-                      isActive && "bg-gray-100 text-gray-900"
+                      isActive && "bg-gray-100 text-gray-900",
+                      !sidebarOpen && "justify-center px-2"
                     )
                   }
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
-                  <span>{item.name}</span>
+                  {sidebarOpen && <span>{item.name}</span>}
                 </NavLink>
               ))}
             </div>
@@ -115,12 +135,13 @@ const Layout = () => {
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-colors hover:text-gray-900 hover:bg-gray-100",
-                      isActive && "bg-gray-100 text-gray-900"
+                      isActive && "bg-gray-100 text-gray-900",
+                      !sidebarOpen && "justify-center px-2"
                     )
                   }
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
-                  <span>{item.name}</span>
+                  {sidebarOpen && <span>{item.name}</span>}
                 </NavLink>
               ))}
             </div>
@@ -128,9 +149,15 @@ const Layout = () => {
         </aside>
 
         {/* Main content */}
-        <div className="flex-1">
+        <div className={cn(
+          "flex-1 transition-all duration-300",
+          sidebarOpen ? "ml-60" : "ml-16"
+        )}>
           {/* Top bar */}
-          <header className="fixed top-0 right-0 left-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-6 ml-72">
+          <header className={cn(
+            "fixed top-0 right-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-6",
+            sidebarOpen ? "left-60" : "left-16"
+          )}>
             <Button
               variant="ghost"
               size="icon"
@@ -162,19 +189,11 @@ const Layout = () => {
           </header>
 
           {/* Page content */}
-          <main className="p-6 mt-16 ml-72">
+          <main className="p-6 mt-16">
             <Outlet />
           </main>
         </div>
       </div>
-
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };
