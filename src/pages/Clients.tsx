@@ -58,7 +58,7 @@ const Clients = () => {
               end_date,
               role,
               is_leader,
-              system_users!inner (
+              system_users (
                 id,
                 name,
                 email
@@ -70,7 +70,7 @@ const Clients = () => {
           if (teamError) throw teamError;
 
           // Formatar os membros da equipe
-          const team = (teamMembers as ProjectMember[]).map(member => ({
+          const team = (teamMembers || []).map((member: any) => ({
             id: member.id,
             name: member.system_users.name,
             email: member.system_users.email,
@@ -89,7 +89,7 @@ const Clients = () => {
               end_date,
               role,
               is_leader,
-              system_users!inner (
+              system_users (
                 id,
                 name,
                 email
@@ -100,7 +100,7 @@ const Clients = () => {
 
           if (previousError) throw previousError;
 
-          const formattedPreviousMembers = (previousMembers as ProjectMember[]).map(member => ({
+          const formattedPreviousMembers = (previousMembers || []).map((member: any) => ({
             id: member.id,
             name: member.system_users.name,
             email: member.system_users.email,
