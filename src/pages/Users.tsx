@@ -1,25 +1,33 @@
+
 import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import UserForm from "@/components/users/UserForm";
 import UserCard from "@/components/users/UserCard";
+import { SystemUser } from "@/types/users";
 
 const Users = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<SystemUser[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_users')
-        .select('*')
-        .order('name');
+      // Temporariamente usando localStorage para desenvolvimento
+      const storedUsers = localStorage.getItem('tempEmployees');
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      } else {
+        const { data, error } = await supabase
+          .from('system_users')
+          .select('*')
+          .order('name');
 
-      if (error) throw error;
-      setUsers(data || []);
+        if (error) throw error;
+        setUsers(data || []);
+      }
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error);
       toast({
@@ -34,7 +42,7 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  const handleEdit = (user: any) => {
+  const handleEdit = (user: SystemUser) => {
     setEditingUser(user);
     setShowForm(true);
   };

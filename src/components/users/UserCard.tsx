@@ -1,64 +1,58 @@
 
-import { useState } from "react";
-import { Pencil } from "lucide-react";
-import VacationButton from "./VacationButton";
+import { SystemUser } from "@/types/users";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Mail, Phone, Building2, Calendar } from "lucide-react";
 
 interface UserCardProps {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    hire_date: string;
-    termination_date?: string;
-    status: 'active' | 'inactive';
-  };
-  onEdit: (user: any) => void;
+  user: SystemUser;
+  onEdit: (user: SystemUser) => void;
 }
 
 const UserCard = ({ user, onEdit }: UserCardProps) => {
-  return (
-    <div className="p-4 border rounded-lg space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            user.status === 'active'
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}>
-            {user.status === 'active' ? 'Ativo' : 'Inativo'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {user.status === 'active' && (
-            <VacationButton user={user} />
-          )}
-          <button
-            onClick={() => onEdit(user)}
-            className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-      
-      <div className="flex justify-between items-center">
-        <div className="font-medium">{user.name}</div>
-        <div className="text-sm text-muted-foreground">{user.email}</div>
-      </div>
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR');
+  };
 
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <span className="text-sm text-muted-foreground">Admissão:</span>
-          <p className="text-sm">{new Date(user.hire_date).toLocaleDateString()}</p>
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="font-semibold text-lg">{user.name}</h3>
+            <div className="space-y-2 mt-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                <span>{user.email}</span>
+              </div>
+              {user.phone && (
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>{user.phone}</span>
+                </div>
+              )}
+              {user.department && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  <span>{user.department}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>Admissão: {formatDate(user.hire_date)}</span>
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(user)}
+          >
+            Editar
+          </Button>
         </div>
-        <div>
-          <span className="text-sm text-muted-foreground">Demissão:</span>
-          <p className="text-sm">
-            {user.termination_date ? new Date(user.termination_date).toLocaleDateString() : '---'}
-          </p>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -29,5 +29,23 @@ export interface SystemUser {
   additional_notes?: string;
   work_start_time?: string;
   work_end_time?: string;
-  photo?: string; // Added photo property as optional
+  photo?: string;
+  selectedClients?: string[];
+  selectedProjects?: string[];
+  personal_info?: {
+    nationality?: string;
+    marital_status?: string;
+    education_level?: string;
+    emergency_contact?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+  };
+  bank_info?: {
+    bank_name?: string;
+    account_type?: string;
+    account_number?: string;
+    agency?: string;
+  };
 }
