@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -45,6 +44,7 @@ const EmployeeRegistration = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState("active");
   const { toast } = useToast();
+  const [showReportDialog, setShowReportDialog] = useState(false);
 
   const fetchEmployees = () => {
     try {
@@ -259,7 +259,9 @@ const EmployeeRegistration = () => {
           </Dialog>
 
           <ShiftsDialog />
-          <ReportDialog employees={employees} />
+          <Button variant="outline" size="sm" onClick={() => setShowReportDialog(true)}>
+            Relatório
+          </Button>
         </div>
       </div>
 
@@ -275,6 +277,10 @@ const EmployeeRegistration = () => {
           {renderEmployeeTable(filteredTerminatedEmployees)}
         </TabsContent>
       </Tabs>
+
+      {showReportDialog && (
+        <ReportDialog employees={employees} />
+      )}
     </div>
   );
 };
