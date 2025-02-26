@@ -29,4 +29,5 @@ export interface SystemUser {
   additional_notes?: string;
   work_start_time?: string;
   work_end_time?: string;
+  photo?: string; // Added photo property as optional
 }
