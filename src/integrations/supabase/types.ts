@@ -485,7 +485,11 @@ export type Database = {
           days_available: number
           end_date: string
           id: string
+          limit_date: string | null
+          payment_date: string | null
+          sold_days: number | null
           start_date: string
+          status: string | null
           updated_at: string | null
           user_id: string
         }
@@ -494,7 +498,11 @@ export type Database = {
           days_available?: number
           end_date: string
           id?: string
+          limit_date?: string | null
+          payment_date?: string | null
+          sold_days?: number | null
           start_date: string
+          status?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -503,7 +511,11 @@ export type Database = {
           days_available?: number
           end_date?: string
           id?: string
+          limit_date?: string | null
+          payment_date?: string | null
+          sold_days?: number | null
           start_date?: string
+          status?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -526,6 +538,8 @@ export type Database = {
           days_taken: number
           end_date: string
           id: string
+          payment_date: string | null
+          sold_days: number | null
           start_date: string
           status: Database["public"]["Enums"]["vacation_status"]
           updated_at: string | null
@@ -540,6 +554,8 @@ export type Database = {
           days_taken: number
           end_date: string
           id?: string
+          payment_date?: string | null
+          sold_days?: number | null
           start_date: string
           status?: Database["public"]["Enums"]["vacation_status"]
           updated_at?: string | null
@@ -554,6 +570,8 @@ export type Database = {
           days_taken?: number
           end_date?: string
           id?: string
+          payment_date?: string | null
+          sold_days?: number | null
           start_date?: string
           status?: Database["public"]["Enums"]["vacation_status"]
           updated_at?: string | null
@@ -589,7 +607,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_vacation_days: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       subscription_status: "active" | "inactive" | "pending" | "cancelled"

@@ -16,12 +16,14 @@ import {
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface VacationPeriod {
   id: string;
   start_date: string;
   end_date: string;
   days_available: number;
+  limit_date: string | null;
 }
 
 interface NewVacationRequestProps {
@@ -35,31 +37,43 @@ const NewVacationRequest = ({ userId, periods, onSuccess }: NewVacationRequestPr
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [comments, setComments] = useState("");
+  const [sellDays, setSellDays] = useState(false);
+  const [daysToSell, setDaysToSell] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedPeriod || !startDate || !endDate) {
+    if (!selectedPeriod) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios"
+        description: "Selecione um período aquisitivo"
       });
       return;
     }
 
-    const daysTaken = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
     const period = periods.find(p => p.id === selectedPeriod);
-
     if (!period) return;
 
-    if (daysTaken > period.days_available) {
+    let totalDays = 0;
+    
+    // Calcula dias de férias
+    if (startDate && endDate) {
+      totalDays = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
+    }
+    
+    // Adiciona dias vendidos
+    if (sellDays) {
+      totalDays += daysToSell;
+    }
+
+    if (totalDays > period.days_available) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: `Você só possui ${period.days_available} dias disponíveis neste período`
+        description: `Total de dias (${totalDays}) excede o saldo disponível (${period.days_available})`
       });
       return;
     }
@@ -71,9 +85,10 @@ const NewVacationRequest = ({ userId, periods, onSuccess }: NewVacationRequestPr
         .insert([{
           vacation_period_id: selectedPeriod,
           user_id: userId,
-          start_date: startDate,
-          end_date: endDate,
-          days_taken: daysTaken,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          days_taken: startDate && endDate ? differenceInDays(parseISO(endDate), parseISO(startDate)) + 1 : 0,
+          sold_days: sellDays ? daysToSell : 0,
           comments
         }]);
 
@@ -93,7 +108,7 @@ const NewVacationRequest = ({ userId, periods, onSuccess }: NewVacationRequestPr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-white rounded-lg">
       <div>
         <Label htmlFor="period">Período Aquisitivo *</Label>
         <Select
@@ -106,43 +121,71 @@ const NewVacationRequest = ({ userId, periods, onSuccess }: NewVacationRequestPr
           <SelectContent>
             {periods.map((period, index) => (
               <SelectItem key={period.id} value={period.id}>
-                {`${index + 1}º Período - ${period.days_available} dias disponíveis`}
+                {format(new Date(period.start_date), 'dd/MM/yyyy')} - {format(new Date(period.end_date), 'dd/MM/yyyy')} ({period.days_available} dias disponíveis)
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="start_date">Data Inicial *</Label>
-          <div className="relative">
-            <Input
-              id="start_date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
-            <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="sell_days"
+            checked={sellDays}
+            onCheckedChange={(checked) => setSellDays(checked as boolean)}
+          />
+          <Label htmlFor="sell_days">Vender dias de férias</Label>
         </div>
 
-        <div>
-          <Label htmlFor="end_date">Data Final *</Label>
-          <div className="relative">
+        {sellDays && (
+          <div>
+            <Label htmlFor="days_to_sell">Quantidade de dias para vender</Label>
             <Input
-              id="end_date"
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              required
+              id="days_to_sell"
+              type="number"
+              min={0}
+              max={10}
+              value={daysToSell}
+              onChange={(e) => setDaysToSell(Number(e.target.value))}
             />
-            <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            <p className="text-sm text-muted-foreground mt-1">
+              Máximo de 10 dias permitido para venda
+            </p>
+          </div>
+        )}
+      </div>
+
+      {(!sellDays || daysToSell < (selectedPeriod ? periods.find(p => p.id === selectedPeriod)?.days_available || 0 : 0)) && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="start_date">Data Inicial</Label>
+            <div className="relative">
+              <Input
+                id="start_date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="end_date">Data Final</Label>
+            <div className="relative">
+              <Input
+                id="end_date"
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div>
         <Label htmlFor="comments">Observações</Label>
