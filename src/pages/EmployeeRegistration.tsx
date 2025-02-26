@@ -259,9 +259,7 @@ const EmployeeRegistration = () => {
           </Dialog>
 
           <ShiftsDialog />
-          <Button variant="outline" size="sm" onClick={() => setShowReportDialog(true)}>
-            Relatório
-          </Button>
+          <ReportDialog employees={employees} />
         </div>
       </div>
 
@@ -277,10 +275,6 @@ const EmployeeRegistration = () => {
           {renderEmployeeTable(filteredTerminatedEmployees)}
         </TabsContent>
       </Tabs>
-
-      {showReportDialog && (
-        <ReportDialog employees={employees} />
-      )}
     </div>
   );
 };

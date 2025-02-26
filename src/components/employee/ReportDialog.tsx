@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Download, CheckSquare } from "lucide-react";
 import {
@@ -10,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Employee {
   id: string;
@@ -45,6 +47,7 @@ interface ReportDialogProps {
 export function ReportDialog({ employees }: ReportDialogProps) {
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('all');
 
   const availableFields = [
     { id: "name", label: "Nome" },
@@ -66,6 +69,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
   useEffect(() => {
     if (!isOpen) {
       setSelectedFields([]);
+      setStatusFilter('all');
     }
   }, [isOpen]);
 
@@ -80,12 +84,18 @@ export function ReportDialog({ employees }: ReportDialogProps) {
   const generateReport = () => {
     if (selectedFields.length === 0) return;
 
+    const filteredEmployees = employees.filter(employee => {
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'active') return employee.status === 'active';
+      return employee.status === 'inactive';
+    });
+
     const headers = selectedFields.map(field => {
       const fieldInfo = availableFields.find(f => f.id === field);
       return fieldInfo?.label || field;
     });
 
-    const rows = employees.map(employee => {
+    const rows = filteredEmployees.map(employee => {
       return selectedFields.map(field => {
         if (field === 'selectedClients') {
           const clients = JSON.parse(localStorage.getItem('tempClients') || '[]');
@@ -148,6 +158,28 @@ export function ReportDialog({ employees }: ReportDialogProps) {
           <DialogTitle>Relatório de Colaboradores</DialogTitle>
         </DialogHeader>
         <div className="py-4">
+          <div className="mb-6">
+            <Label className="mb-2 block font-medium">Filtrar por Status</Label>
+            <RadioGroup
+              value={statusFilter}
+              onValueChange={(value: 'active' | 'inactive' | 'all') => setStatusFilter(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="all" />
+                <Label htmlFor="all">Todos</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="active" id="active" />
+                <Label htmlFor="active">Ativos</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="inactive" id="inactive" />
+                <Label htmlFor="inactive">Inativos</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <div className="flex items-center space-x-2 mb-4 border-b pb-4">
             <Checkbox
               id="select-all"
