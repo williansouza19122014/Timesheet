@@ -7,6 +7,19 @@ import ClientForm from "@/components/clients/ClientForm";
 import ClientCard from "@/components/clients/ClientCard";
 import { supabase } from "@/lib/supabase";
 
+interface ProjectMember {
+  id: string;
+  start_date: string;
+  end_date: string | null;
+  role: string;
+  is_leader: boolean;
+  system_users: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
 const Clients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [showNewClientForm, setShowNewClientForm] = useState(false);
@@ -57,7 +70,7 @@ const Clients = () => {
           if (teamError) throw teamError;
 
           // Formatar os membros da equipe
-          const team = teamMembers.map(member => ({
+          const team = (teamMembers as ProjectMember[]).map(member => ({
             id: member.id,
             name: member.system_users.name,
             email: member.system_users.email,
@@ -87,7 +100,7 @@ const Clients = () => {
 
           if (previousError) throw previousError;
 
-          const formattedPreviousMembers = previousMembers.map(member => ({
+          const formattedPreviousMembers = (previousMembers as ProjectMember[]).map(member => ({
             id: member.id,
             name: member.system_users.name,
             email: member.system_users.email,
