@@ -22,6 +22,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     setClients,
     handleInputChange,
     handleProjectToggle,
+    handleClientToggle,
     handleSubmit
   } = useEmployeeForm({ onSuccess });
 
@@ -58,7 +59,9 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
             selectedProjects={formData.selectedProjects}
             setSelectedClient={setSelectedClient}
             handleProjectToggle={handleProjectToggle}
+            handleClientToggle={handleClientToggle}
             setClients={setClients}
+            selectedClients={formData.selectedClients}
           />
         </div>
 
