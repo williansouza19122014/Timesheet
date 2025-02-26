@@ -3,7 +3,6 @@ import { Outlet, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Clock,
-  Users,
   Building2,
   FileBarChart,
   Settings,
@@ -42,11 +41,6 @@ const Layout = () => {
       name: "Clientes",
       href: "/clientes",
       icon: Building2,
-    },
-    {
-      name: "Equipe",
-      href: "/equipe",
-      icon: Users,
     },
     {
       name: "Cadastro de Colaborador",
@@ -140,7 +134,7 @@ const Layout = () => {
               <Menu className="h-6 w-6" />
             </Button>
             
-            <div className="flex-1" /> {/* Espaço vazio onde estava o título */}
+            <div className="flex-1" />
             
             <div className="flex items-center gap-4">
               <Inbox>

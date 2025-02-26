@@ -12,7 +12,6 @@ import Users from "@/pages/Users";
 import Kanban from "@/pages/Kanban";
 import Clients from "@/pages/Clients";
 import Reports from "@/pages/Reports";
-import Team from "@/pages/Team";
 import Profile from "@/pages/Profile";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 import EmployeeRegistration from "@/pages/EmployeeRegistration";
@@ -31,7 +30,6 @@ const App = () => {
             <Route path="/ponto" element={<TimeTracking />} />
             <Route path="/kanban" element={<Kanban />} />
             <Route path="/clientes" element={<Clients />} />
-            <Route path="/equipe" element={<Team />} />
             <Route path="/cadastro-colaborador" element={<EmployeeRegistration />} />
             <Route path="/usuarios" element={<Users />} />
             <Route path="/relatorios" element={<Reports />} />
