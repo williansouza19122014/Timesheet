@@ -15,6 +15,7 @@ interface VacationPeriod {
   start_date: string;
   end_date: string;
   days_available: number;
+  limit_date: string | null;
 }
 
 interface VacationPeriodsProps {
@@ -34,6 +35,7 @@ const VacationPeriods = ({ periods, isLoading }: VacationPeriodsProps) => {
           <TableHead>Período Aquisitivo</TableHead>
           <TableHead>Início</TableHead>
           <TableHead>Fim</TableHead>
+          <TableHead>Limite para Gozo</TableHead>
           <TableHead className="text-right">Dias Disponíveis</TableHead>
         </TableRow>
       </TableHeader>
@@ -46,6 +48,11 @@ const VacationPeriods = ({ periods, isLoading }: VacationPeriodsProps) => {
             </TableCell>
             <TableCell>
               {format(new Date(period.end_date), 'dd/MM/yyyy', { locale: ptBR })}
+            </TableCell>
+            <TableCell>
+              {period.limit_date 
+                ? format(new Date(period.limit_date), 'dd/MM/yyyy', { locale: ptBR })
+                : '--'}
             </TableCell>
             <TableCell className="text-right">{period.days_available}</TableCell>
           </TableRow>

@@ -184,7 +184,7 @@ const Vacations = () => {
       </div>
 
       {expiringPeriods.length > 0 && (
-        <Alert variant="warning">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Atenção</AlertTitle>
           <AlertDescription>

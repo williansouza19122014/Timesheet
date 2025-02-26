@@ -25,6 +25,7 @@ interface VacationPeriod {
   start_date: string;
   end_date: string;
   days_available: number;
+  limit_date: string | null;
 }
 
 const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
