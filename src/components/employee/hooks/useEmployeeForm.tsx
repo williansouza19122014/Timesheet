@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types/clients";
@@ -25,8 +26,7 @@ interface Employee {
   termination_date?: string;
   status: string;
   contract_type: string;
-  work_start_time: string;
-  work_end_time: string;
+  work_shift: string;
   address: Address;
   selectedClients: string[];
   selectedProjects: string[];
