@@ -1,8 +1,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Client, Project } from "@/types/clients";
-import { supabase } from "@/lib/supabase";
+import { Client } from "@/types/clients";
 
 interface Address {
   street: string;
@@ -100,45 +99,31 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
     setIsLoading(true);
 
     try {
-      const cpf = formData.cpf.replace(/\D/g, '');
+      // Salvar no localStorage temporariamente
+      const employees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
+      const newEmployee = {
+        id: crypto.randomUUID(),
+        ...formData,
+        status: 'active',
+        created_at: new Date().toISOString(),
+      };
+      
+      employees.push(newEmployee);
+      localStorage.setItem('tempEmployees', JSON.stringify(employees));
 
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('system_users')
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          cpf,
-          birth_date: formData.birth_date,
-          phone: formData.phone,
-          position: formData.position,
-          department: formData.department,
-          hire_date: formData.hire_date,
-          contract_type: formData.contract_type,
-          work_start_time: formData.work_start_time,
-          work_end_time: formData.work_end_time,
-          address: formData.address,
-          manager_id: formData.manager_id,
-          additional_notes: formData.additional_notes,
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (employeeError) throw employeeError;
-
+      // Se houver projetos selecionados, salvar também
       if (formData.selectedProjects.length > 0) {
-        const projectMembers = formData.selectedProjects.map(projectId => ({
-          user_id: employeeData.id,
+        const projectMembers = JSON.parse(localStorage.getItem('tempProjectMembers') || '[]');
+        const newProjectMembers = formData.selectedProjects.map(projectId => ({
+          id: crypto.randomUUID(),
+          user_id: newEmployee.id,
           project_id: projectId,
           start_date: formData.hire_date,
           role: formData.position
         }));
-
-        const { error: projectMemberError } = await supabase
-          .from('project_members')
-          .insert(projectMembers);
-
-        if (projectMemberError) throw projectMemberError;
+        
+        projectMembers.push(...newProjectMembers);
+        localStorage.setItem('tempProjectMembers', JSON.stringify(projectMembers));
       }
 
       toast({
