@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import NewVacationRequest from "@/components/users/NewVacationRequest";
 
 interface VacationPeriod {
   id: string;
@@ -81,48 +82,6 @@ const Vacations = () => {
     loadVacationData();
   }, []);
 
-  const handleRequestVacation = async (periodId: string, startDate: string, endDate: string, comments: string = '') => {
-    try {
-      const daysTaken = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
-      const period = periods.find(p => p.id === periodId);
-
-      if (!period) throw new Error('Período não encontrado');
-      if (daysTaken > period.days_available) {
-        throw new Error(`Você só possui ${period.days_available} dias disponíveis neste período`);
-      }
-
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Usuário não autenticado');
-
-      const { error } = await supabase
-        .from('vacation_requests')
-        .insert([{
-          user_id: userData.user.id,
-          vacation_period_id: periodId,
-          start_date: startDate,
-          end_date: endDate,
-          days_taken: daysTaken,
-          comments
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Solicitação enviada",
-        description: "Sua solicitação de férias foi enviada para aprovação"
-      });
-
-      loadVacationData();
-    } catch (error: any) {
-      console.error('Erro ao solicitar férias:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao solicitar férias",
-        description: error.message
-      });
-    }
-  };
-
   if (isLoading) {
     return <div>Carregando...</div>;
   }
@@ -148,7 +107,17 @@ const Vacations = () => {
             <DialogHeader>
               <DialogTitle>Nova Solicitação de Férias</DialogTitle>
             </DialogHeader>
-            {/* Formulário de solicitação será implementado aqui */}
+            <NewVacationRequest
+              userId={periods[0]?.user_id || ''}
+              periods={periods}
+              onSuccess={() => {
+                loadVacationData();
+                toast({
+                  title: "Solicitação enviada",
+                  description: "Sua solicitação de férias foi enviada para aprovação"
+                });
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
