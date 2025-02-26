@@ -5,26 +5,29 @@ interface AuthContextType {
   user: {
     id: string;
     email: string;
+    name: string;
     role: string;
   } | null;
   isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  // Define um usuário admin padrão durante o desenvolvimento
   user: {
-    id: "dev-admin",
-    email: "admin@example.com",
+    id: "willian-admin-id",
+    email: "willian.souza@exemplo.com",
+    name: "Willian Souza",
     role: "admin"
   },
   isAdmin: true
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Durante o desenvolvimento, vamos simular o Willian como admin
   const value = {
     user: {
-      id: "dev-admin",
-      email: "admin@example.com",
+      id: "willian-admin-id",
+      email: "willian.souza@exemplo.com",
+      name: "Willian Souza",
       role: "admin"
     },
     isAdmin: true
