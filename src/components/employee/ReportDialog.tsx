@@ -107,7 +107,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
           Gerar Relatório
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-white">
         <DialogHeader>
           <DialogTitle>Gerar Relatório de Colaboradores</DialogTitle>
         </DialogHeader>
