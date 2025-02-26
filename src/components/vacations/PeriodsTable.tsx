@@ -6,18 +6,19 @@ import { VacationPeriod } from "@/types/vacations";
 
 interface PeriodsTableProps {
   periods: VacationPeriod[];
+  isPJ?: boolean;
 }
 
-const PeriodsTable = ({ periods }: PeriodsTableProps) => {
+const PeriodsTable = ({ periods, isPJ = false }: PeriodsTableProps) => {
   return (
     <div>
-      <h3 className="text-lg font-medium mb-4">Períodos Aquisitivos</h3>
+      <h3 className="text-lg font-medium mb-4">Períodos {isPJ ? 'de Descanso' : 'Aquisitivos'}</h3>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Período Aquisitivo</TableHead>
+            <TableHead>Período {isPJ ? 'de Descanso' : 'Aquisitivo'}</TableHead>
             <TableHead>Saldo (dias)</TableHead>
-            <TableHead>Limite para Gozo</TableHead>
+            <TableHead>Limite para {isPJ ? 'Descanso' : 'Gozo'}</TableHead>
             <TableHead>Venda de Dias</TableHead>
             <TableHead>Data do Pagamento</TableHead>
           </TableRow>

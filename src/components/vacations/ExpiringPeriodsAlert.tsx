@@ -6,9 +6,10 @@ import { addMonths } from "date-fns";
 
 interface ExpiringPeriodsAlertProps {
   periods: VacationPeriod[];
+  isPJ?: boolean;
 }
 
-const ExpiringPeriodsAlert = ({ periods }: ExpiringPeriodsAlertProps) => {
+const ExpiringPeriodsAlert = ({ periods, isPJ = false }: ExpiringPeriodsAlertProps) => {
   const expiringPeriods = periods.filter(period => {
     if (!period.limit_date) return false;
     const limitDate = new Date(period.limit_date);
@@ -23,8 +24,8 @@ const ExpiringPeriodsAlert = ({ periods }: ExpiringPeriodsAlertProps) => {
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Atenção</AlertTitle>
       <AlertDescription>
-        Você tem {expiringPeriods.length} período(s) de férias próximo(s) do vencimento.
-        Por favor, programe suas férias em breve.
+        Você tem {expiringPeriods.length} período(s) de {isPJ ? 'descanso' : 'férias'} próximo(s) do vencimento.
+        Por favor, programe seu {isPJ ? 'descanso' : 'férias'} em breve.
       </AlertDescription>
     </Alert>
   );

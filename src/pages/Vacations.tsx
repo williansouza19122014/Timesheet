@@ -6,9 +6,12 @@ import VacationsHeader from "@/components/vacations/VacationsHeader";
 import ExpiringPeriodsAlert from "@/components/vacations/ExpiringPeriodsAlert";
 import PeriodsTable from "@/components/vacations/PeriodsTable";
 import RequestsTable from "@/components/vacations/RequestsTable";
+import { useAuth } from "@/hooks/useAuth";
 
 const Vacations = () => {
   const { periods, requests, isLoading, loadVacationData } = useVacations();
+  const { user } = useAuth();
+  const isPJ = periods[0]?.contract_type === 'PJ';
 
   useEffect(() => {
     loadVacationData();
@@ -24,13 +27,14 @@ const Vacations = () => {
         periods={periods}
         onExport={() => exportVacationsToCSV(periods, requests)}
         onRequestSuccess={loadVacationData}
+        isPJ={isPJ}
       />
 
-      <ExpiringPeriodsAlert periods={periods} />
+      <ExpiringPeriodsAlert periods={periods} isPJ={isPJ} />
 
       <div className="space-y-6">
-        <PeriodsTable periods={periods} />
-        <RequestsTable requests={requests} />
+        <PeriodsTable periods={periods} isPJ={isPJ} />
+        <RequestsTable requests={requests} isPJ={isPJ} />
       </div>
     </div>
   );

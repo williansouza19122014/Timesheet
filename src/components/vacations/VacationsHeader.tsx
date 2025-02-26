@@ -10,17 +10,20 @@ interface VacationsHeaderProps {
   periods: VacationPeriod[];
   onExport: () => void;
   onRequestSuccess: () => void;
+  isPJ?: boolean;
 }
 
-const VacationsHeader = ({ periods, onExport, onRequestSuccess }: VacationsHeaderProps) => {
+const VacationsHeader = ({ periods, onExport, onRequestSuccess, isPJ = false }: VacationsHeaderProps) => {
   const { toast } = useToast();
+  const title = isPJ ? "Descanso Remunerado" : "Férias";
+  const description = isPJ ? "Gerencie seus períodos de descanso remunerado" : "Gerencie seus períodos aquisitivos e solicite férias";
 
   return (
     <div className="flex justify-between items-center">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Férias</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
         <p className="text-muted-foreground">
-          Gerencie seus períodos aquisitivos e solicite férias
+          {description}
         </p>
       </div>
       
@@ -38,7 +41,7 @@ const VacationsHeader = ({ periods, onExport, onRequestSuccess }: VacationsHeade
           </DialogTrigger>
           <DialogContent className="bg-white">
             <DialogHeader>
-              <DialogTitle>Nova Solicitação de Férias</DialogTitle>
+              <DialogTitle>Nova Solicitação de {isPJ ? 'Descanso' : 'Férias'}</DialogTitle>
             </DialogHeader>
             <NewVacationRequest
               userId={periods[0]?.user_id || ''}
@@ -47,7 +50,7 @@ const VacationsHeader = ({ periods, onExport, onRequestSuccess }: VacationsHeade
                 onRequestSuccess();
                 toast({
                   title: "Solicitação enviada",
-                  description: "Sua solicitação de férias foi enviada para aprovação"
+                  description: `Sua solicitação de ${isPJ ? 'descanso' : 'férias'} foi enviada para aprovação`
                 });
               }}
               contractType={periods[0]?.contract_type || 'CLT'}
