@@ -15,6 +15,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+interface Address {
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+}
+
 interface EmployeeFormData {
   name: string;
   cpf: string;
@@ -27,15 +37,7 @@ interface EmployeeFormData {
   contract_type: string;
   work_start_time: string;
   work_end_time: string;
-  address: {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zip_code: string;
-  };
+  address: Address;
   manager_id?: string;
   additional_notes?: string;
 }
@@ -79,7 +81,7 @@ const EmployeeRegistration = () => {
 
       const { data, error } = await supabase
         .from('system_users')
-        .insert([{
+        .insert({
           name: formData.name,
           email: formData.email,
           cpf,
@@ -95,7 +97,7 @@ const EmployeeRegistration = () => {
           manager_id: formData.manager_id,
           additional_notes: formData.additional_notes,
           status: 'active'
-        }])
+        })
         .select()
         .single();
 
