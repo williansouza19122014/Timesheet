@@ -13,6 +13,32 @@ interface Address {
   zip_code: string;
 }
 
+interface Employee {
+  id: string;
+  name: string;
+  cpf: string;
+  birth_date: string;
+  email: string;
+  phone: string;
+  position: string;
+  department: string;
+  hire_date: string;
+  termination_date?: string;
+  status: string;
+  contract_type: string;
+  work_start_time: string;
+  work_end_time: string;
+  address: Address;
+  selectedClients: string[];
+  selectedProjects: string[];
+  additional_notes?: string;
+}
+
+interface Props {
+  onSuccess: () => void;
+  editingEmployee?: Employee | null;
+}
+
 interface EmployeeFormData {
   name: string;
   cpf: string;
@@ -32,28 +58,24 @@ interface EmployeeFormData {
   selectedProjects: string[];
 }
 
-interface Props {
-  onSuccess: () => void;
-}
-
-export const useEmployeeForm = ({ onSuccess }: Props) => {
+export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [formData, setFormData] = useState<EmployeeFormData>({
-    name: "",
-    cpf: "",
-    birth_date: "",
-    email: "",
-    phone: "",
-    position: "",
-    department: "",
-    hire_date: new Date().toISOString().split('T')[0],
-    contract_type: "",
-    work_start_time: "",
-    work_end_time: "",
-    address: {
+    name: editingEmployee?.name || "",
+    cpf: editingEmployee?.cpf || "",
+    birth_date: editingEmployee?.birth_date || "",
+    email: editingEmployee?.email || "",
+    phone: editingEmployee?.phone || "",
+    position: editingEmployee?.position || "",
+    department: editingEmployee?.department || "",
+    hire_date: editingEmployee?.hire_date || new Date().toISOString().split('T')[0],
+    contract_type: editingEmployee?.contract_type || "",
+    work_start_time: editingEmployee?.work_start_time || "",
+    work_end_time: editingEmployee?.work_end_time || "",
+    address: editingEmployee?.address || {
       street: "",
       number: "",
       complement: "",
@@ -62,9 +84,9 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
       state: "",
       zip_code: "",
     },
-    additional_notes: "",
-    selectedClients: [],
-    selectedProjects: []
+    additional_notes: editingEmployee?.additional_notes || "",
+    selectedClients: editingEmployee?.selectedClients || [],
+    selectedProjects: editingEmployee?.selectedProjects || []
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -110,50 +132,67 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
     setIsLoading(true);
 
     try {
-      // Salvar no localStorage temporariamente
       const employees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
-      const newEmployee = {
-        id: crypto.randomUUID(),
-        ...formData,
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
       
-      employees.push(newEmployee);
-      localStorage.setItem('tempEmployees', JSON.stringify(employees));
-
-      // Se houver projetos selecionados, salvar também
-      if (formData.selectedProjects.length > 0) {
-        const projectMembers = JSON.parse(localStorage.getItem('tempProjectMembers') || '[]');
-        const newProjectMembers = formData.selectedProjects.map(projectId => ({
+      if (editingEmployee) {
+        // Update existing employee
+        const updatedEmployees = employees.map((emp: Employee) => 
+          emp.id === editingEmployee.id 
+            ? { 
+                ...emp, 
+                ...formData,
+                status: formData.termination_date ? 'inactive' : 'active'
+              }
+            : emp
+        );
+        localStorage.setItem('tempEmployees', JSON.stringify(updatedEmployees));
+      } else {
+        // Create new employee
+        const newEmployee = {
           id: crypto.randomUUID(),
-          user_id: newEmployee.id,
-          project_id: projectId,
-          start_date: formData.hire_date,
-          role: formData.position
-        }));
+          ...formData,
+          status: 'active',
+          created_at: new Date().toISOString(),
+        };
         
-        projectMembers.push(...newProjectMembers);
-        localStorage.setItem('tempProjectMembers', JSON.stringify(projectMembers));
-      }
+        employees.push(newEmployee);
+        localStorage.setItem('tempEmployees', JSON.stringify(employees));
 
-      // Salvar relação com clientes
-      if (formData.selectedClients.length > 0) {
-        const clientEmployees = JSON.parse(localStorage.getItem('tempClientEmployees') || '[]');
-        const newClientEmployees = formData.selectedClients.map(clientId => ({
-          id: crypto.randomUUID(),
-          employee_id: newEmployee.id,
-          client_id: clientId,
-          start_date: formData.hire_date
-        }));
-        
-        clientEmployees.push(...newClientEmployees);
-        localStorage.setItem('tempClientEmployees', JSON.stringify(clientEmployees));
+        // If there are projects selected, save project members
+        if (formData.selectedProjects.length > 0) {
+          const projectMembers = JSON.parse(localStorage.getItem('tempProjectMembers') || '[]');
+          const newProjectMembers = formData.selectedProjects.map(projectId => ({
+            id: crypto.randomUUID(),
+            user_id: newEmployee.id,
+            project_id: projectId,
+            start_date: formData.hire_date,
+            role: formData.position
+          }));
+          
+          projectMembers.push(...newProjectMembers);
+          localStorage.setItem('tempProjectMembers', JSON.stringify(projectMembers));
+        }
+
+        // Save client relationships
+        if (formData.selectedClients.length > 0) {
+          const clientEmployees = JSON.parse(localStorage.getItem('tempClientEmployees') || '[]');
+          const newClientEmployees = formData.selectedClients.map(clientId => ({
+            id: crypto.randomUUID(),
+            employee_id: newEmployee.id,
+            client_id: clientId,
+            start_date: formData.hire_date
+          }));
+          
+          clientEmployees.push(...newClientEmployees);
+          localStorage.setItem('tempClientEmployees', JSON.stringify(clientEmployees));
+        }
       }
 
       toast({
-        title: "Colaborador cadastrado com sucesso!",
-        description: `${formData.name} foi adicionado à equipe.`
+        title: editingEmployee 
+          ? "Colaborador atualizado com sucesso!" 
+          : "Colaborador cadastrado com sucesso!",
+        description: `${formData.name} foi ${editingEmployee ? 'atualizado' : 'adicionado'} à equipe.`
       });
       
       onSuccess();
