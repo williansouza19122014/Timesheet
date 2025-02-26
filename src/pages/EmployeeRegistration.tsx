@@ -93,7 +93,7 @@ const EmployeeRegistration = () => {
                 Novo Colaborador
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Colaborador</DialogTitle>
               </DialogHeader>
