@@ -201,46 +201,58 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-6">
-        <PersonalInfoSection 
-          formData={formData} 
-          handleInputChange={handleInputChange} 
-        />
+    <form onSubmit={handleSubmit} className="space-y-4 p-2">
+      <div className="space-y-4">
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Informações Pessoais</h3>
+          <PersonalInfoSection 
+            formData={formData} 
+            handleInputChange={handleInputChange} 
+          />
+        </div>
 
-        <WorkInfoSection 
-          formData={formData} 
-          handleInputChange={handleInputChange} 
-        />
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <h3 className="text-sm font-semibold mb-3">Informações Profissionais</h3>
+          <WorkInfoSection 
+            formData={formData} 
+            handleInputChange={handleInputChange} 
+          />
+        </div>
 
-        <AddressSection 
-          address={formData.address} 
-          handleInputChange={handleInputChange} 
-        />
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <AddressSection 
+            address={formData.address} 
+            handleInputChange={handleInputChange} 
+          />
+        </div>
 
-        <ProjectsSection 
-          clients={clients}
-          selectedClient={selectedClient}
-          selectedProjects={formData.selectedProjects}
-          setSelectedClient={setSelectedClient}
-          handleProjectToggle={handleProjectToggle}
-        />
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <ProjectsSection 
+            clients={clients}
+            selectedClient={selectedClient}
+            selectedProjects={formData.selectedProjects}
+            setSelectedClient={setSelectedClient}
+            handleProjectToggle={handleProjectToggle}
+          />
+        </div>
 
         <div className="space-y-2">
-          <Label htmlFor="additional_notes">Observações Adicionais</Label>
+          <Label htmlFor="additional_notes" className="text-sm">Observações</Label>
           <Textarea
             id="additional_notes"
             value={formData.additional_notes}
             onChange={(e) => handleInputChange('additional_notes', e.target.value)}
             placeholder="Se necessário"
+            className="h-20 resize-none"
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-2 pt-2">
         <Button
           type="submit"
           disabled={isLoading}
+          size="sm"
         >
           {isLoading ? "Cadastrando..." : "Cadastrar Colaborador"}
         </Button>

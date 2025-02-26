@@ -20,13 +20,24 @@ interface Employee {
   department: string;
   hire_date: string;
   status: string;
+  cpf: string;
+  birth_date: string;
+  contract_type: string;
+  work_start_time: string;
+  work_end_time: string;
+  address: {
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  };
   projects?: Project[];
 }
 
 interface Project {
   id: string;
   name: string;
-  client_id: string;
 }
 
 const EmployeeRegistration = () => {
@@ -78,20 +89,20 @@ const EmployeeRegistration = () => {
   });
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Colaboradores</h1>
-        <div className="flex gap-4">
+    <div className="container mx-auto py-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Colaboradores</h1>
+        <div className="flex gap-2">
           <ReportDialog employees={employees} />
           
           <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-1" />
                 Novo Colaborador
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Colaborador</DialogTitle>
               </DialogHeader>
@@ -109,39 +120,69 @@ const EmployeeRegistration = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="flex gap-4 mb-4">
+      <div className="bg-white p-3 rounded-lg border">
+        <div className="flex gap-2 mb-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar colaboradores..."
-              className="pl-10"
+              className="pl-9"
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Data Admissão</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Projetos</TableHead>
+                <TableHead className="whitespace-nowrap">Nome</TableHead>
+                <TableHead className="whitespace-nowrap">CPF</TableHead>
+                <TableHead className="whitespace-nowrap">Contato</TableHead>
+                <TableHead className="whitespace-nowrap">Cargo/Depto</TableHead>
+                <TableHead className="whitespace-nowrap">Contrato</TableHead>
+                <TableHead className="whitespace-nowrap">Horário</TableHead>
+                <TableHead className="whitespace-nowrap">Endereço</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap">Projetos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEmployees.map((employee) => (
-                <TableRow key={employee.id}>
-                  <TableCell>{employee.name}</TableCell>
-                  <TableCell>{employee.email}</TableCell>
-                  <TableCell>{employee.position}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
-                  <TableCell>{new Date(employee.hire_date).toLocaleDateString()}</TableCell>
+                <TableRow key={employee.id} className="text-sm">
+                  <TableCell className="font-medium">
+                    {employee.name}
+                    <div className="text-xs text-muted-foreground">
+                      Nasc: {new Date(employee.birth_date).toLocaleDateString()}
+                    </div>
+                  </TableCell>
+                  <TableCell>{employee.cpf}</TableCell>
+                  <TableCell>
+                    <div>{employee.email}</div>
+                    <div className="text-xs text-muted-foreground">{employee.phone}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div>{employee.position}</div>
+                    <div className="text-xs text-muted-foreground">{employee.department}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div>{employee.contract_type}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Admissão: {new Date(employee.hire_date).toLocaleDateString()}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {employee.work_start_time} - {employee.work_end_time}
+                  </TableCell>
+                  <TableCell className="max-w-[200px]">
+                    {employee.address && (
+                      <div className="text-xs">
+                        {employee.address.street}, {employee.address.number} - {employee.address.neighborhood}
+                        <br />
+                        {employee.address.city}/{employee.address.state}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       employee.status === 'active' 
