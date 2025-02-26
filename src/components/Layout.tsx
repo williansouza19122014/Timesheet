@@ -11,6 +11,7 @@ import {
   KanbanSquare,
   Menu,
   UserPlus,
+  Calendar,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,11 @@ const Layout = () => {
       name: "Ponto",
       href: "/ponto",
       icon: Clock,
+    },
+    {
+      name: "Férias",
+      href: "/ferias",
+      icon: Calendar,
     },
     {
       name: "Kanban",

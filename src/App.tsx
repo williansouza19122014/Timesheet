@@ -13,6 +13,7 @@ import Kanban from "@/pages/Kanban";
 import Clients from "@/pages/Clients";
 import Reports from "@/pages/Reports";
 import Profile from "@/pages/Profile";
+import Vacations from "@/pages/Vacations";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 import EmployeeRegistration from "@/pages/EmployeeRegistration";
 
@@ -28,6 +29,7 @@ const App = () => {
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/ponto" element={<TimeTracking />} />
+            <Route path="/ferias" element={<Vacations />} />
             <Route path="/kanban" element={<Kanban />} />
             <Route path="/clientes" element={<Clients />} />
             <Route path="/cadastro-colaborador" element={<EmployeeRegistration />} />
