@@ -1,11 +1,10 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Download, Filter, Plus } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import NewEmployeeForm from "@/components/employee/NewEmployeeForm";
 import { ReportDialog } from "@/components/employee/ReportDialog";
@@ -33,36 +32,24 @@ interface Employee {
     state: string;
     zip_code: string;
   };
-  projects?: Project[];
-}
-
-interface Project {
-  id: string;
-  name: string;
+  selectedClients: string[];
+  selectedProjects: string[];
 }
 
 const EmployeeRegistration = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = () => {
     try {
-      setIsLoading(true);
-      const { data: employeesData, error: employeesError } = await supabase
-        .from('system_users')
-        .select('*, project_members(project_id, projects(id, name, client_id))');
-
-      if (employeesError) throw employeesError;
-
-      const formattedEmployees = employeesData.map((employee: any) => ({
-        ...employee,
-        projects: employee.project_members?.map((pm: any) => pm.projects) || []
-      }));
-
-      setEmployees(formattedEmployees);
+      const storedEmployees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
+      // Ordenar por nome em ordem alfabética
+      const sortedEmployees = storedEmployees.sort((a: Employee, b: Employee) => 
+        a.name.localeCompare(b.name)
+      );
+      setEmployees(sortedEmployees);
     } catch (error: any) {
       console.error('Erro ao carregar colaboradores:', error);
       toast({
@@ -70,8 +57,6 @@ const EmployeeRegistration = () => {
         title: "Erro ao carregar colaboradores",
         description: error.message
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -193,12 +178,19 @@ const EmployeeRegistration = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {employee.projects?.length > 0 
-                      ? employee.projects.map(p => p.name).join(", ")
+                    {employee.selectedProjects?.length > 0 
+                      ? employee.selectedProjects.length + " projetos vinculados"
                       : "Nenhum projeto"}
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredEmployees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-4 text-muted-foreground">
+                    Nenhum colaborador encontrado
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

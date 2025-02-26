@@ -28,6 +28,7 @@ interface EmployeeFormData {
   address: Address;
   manager_id?: string;
   additional_notes?: string;
+  selectedClients: string[];
   selectedProjects: string[];
 }
 
@@ -62,6 +63,7 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
       zip_code: "",
     },
     additional_notes: "",
+    selectedClients: [],
     selectedProjects: []
   });
 
@@ -83,6 +85,15 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
         [field]: value
       }));
     }
+  };
+
+  const handleClientToggle = (clientId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedClients: prev.selectedClients.includes(clientId)
+        ? prev.selectedClients.filter(id => id !== clientId)
+        : [...prev.selectedClients, clientId]
+    }));
   };
 
   const handleProjectToggle = (projectId: string) => {
@@ -126,6 +137,20 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
         localStorage.setItem('tempProjectMembers', JSON.stringify(projectMembers));
       }
 
+      // Salvar relação com clientes
+      if (formData.selectedClients.length > 0) {
+        const clientEmployees = JSON.parse(localStorage.getItem('tempClientEmployees') || '[]');
+        const newClientEmployees = formData.selectedClients.map(clientId => ({
+          id: crypto.randomUUID(),
+          employee_id: newEmployee.id,
+          client_id: clientId,
+          start_date: formData.hire_date
+        }));
+        
+        clientEmployees.push(...newClientEmployees);
+        localStorage.setItem('tempClientEmployees', JSON.stringify(clientEmployees));
+      }
+
       toast({
         title: "Colaborador cadastrado com sucesso!",
         description: `${formData.name} foi adicionado à equipe.`
@@ -152,6 +177,7 @@ export const useEmployeeForm = ({ onSuccess }: Props) => {
     setSelectedClient,
     setClients,
     handleInputChange,
+    handleClientToggle,
     handleProjectToggle,
     handleSubmit
   };

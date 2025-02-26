@@ -2,16 +2,8 @@
 import { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types/clients";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectsSectionProps {
   clients: Client[];
@@ -19,7 +11,9 @@ interface ProjectsSectionProps {
   selectedProjects: string[];
   setSelectedClient: (clientId: string) => void;
   handleProjectToggle: (projectId: string) => void;
+  handleClientToggle: (clientId: string) => void;
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
+  selectedClients: string[];
 }
 
 export const ProjectsSection = ({
@@ -28,7 +22,9 @@ export const ProjectsSection = ({
   selectedProjects,
   setSelectedClient,
   handleProjectToggle,
-  setClients
+  handleClientToggle,
+  setClients,
+  selectedClients
 }: ProjectsSectionProps) => {
   const { toast } = useToast();
   
@@ -41,7 +37,6 @@ export const ProjectsSection = ({
       const savedClients = localStorage.getItem('tempClients');
       if (savedClients) {
         const parsedClients = JSON.parse(savedClients);
-        // Garantindo que os clientes tenham todas as propriedades necessárias
         const validClients = parsedClients.map((client: any) => ({
           ...client,
           cnpj: client.cnpj || "",
@@ -65,48 +60,58 @@ export const ProjectsSection = ({
     }
   };
 
-  const currentClientProjects = selectedClient
+  const availableProjects = selectedClient
     ? clients.find(c => c.id === selectedClient)?.projects || []
     : [];
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Projetos</h3>
+      <h3 className="text-lg font-semibold">Clientes e Projetos</h3>
+      
+      {/* Lista de Clientes */}
       <div className="space-y-2">
-        <Label>Selecione o Cliente</Label>
-        <Select value={selectedClient} onValueChange={setSelectedClient}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {clients.map(client => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>Selecione os Clientes</Label>
+        <div className="grid grid-cols-2 gap-4">
+          {clients.map(client => (
+            <div key={client.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={`client-${client.id}`}
+                checked={selectedClients.includes(client.id)}
+                onCheckedChange={() => handleClientToggle(client.id)}
+              />
+              <Label htmlFor={`client-${client.id}`}>{client.name}</Label>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {selectedClient && (
+      {/* Projetos dos Clientes Selecionados */}
+      {selectedClients.length > 0 && (
         <div className="space-y-2">
-          <Label>Projetos do Cliente</Label>
+          <Label>Projetos Disponíveis</Label>
           <div className="grid grid-cols-2 gap-4">
-            {currentClientProjects.map(project => (
-              <div key={project.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`project-${project.id}`}
-                  checked={selectedProjects.includes(project.id)}
-                  onCheckedChange={() => handleProjectToggle(project.id)}
-                />
-                <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
-              </div>
-            ))}
-            {currentClientProjects.length === 0 && (
-              <p className="text-sm text-muted-foreground col-span-2">
-                Este cliente não possui projetos cadastrados
-              </p>
-            )}
+            {clients
+              .filter(client => selectedClients.includes(client.id))
+              .map(client => (
+                <div key={client.id} className="space-y-2 border p-3 rounded-lg">
+                  <Label className="font-medium">{client.name}</Label>
+                  {client.projects?.map(project => (
+                    <div key={project.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`project-${project.id}`}
+                        checked={selectedProjects.includes(project.id)}
+                        onCheckedChange={() => handleProjectToggle(project.id)}
+                      />
+                      <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
+                    </div>
+                  ))}
+                  {(!client.projects || client.projects.length === 0) && (
+                    <p className="text-sm text-muted-foreground">
+                      Este cliente não possui projetos cadastrados
+                    </p>
+                  )}
+                </div>
+              ))}
           </div>
         </div>
       )}
