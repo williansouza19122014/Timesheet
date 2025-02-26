@@ -435,6 +435,111 @@ export type Database = {
         }
         Relationships: []
       }
+      vacation_periods: {
+        Row: {
+          created_at: string | null
+          days_available: number
+          end_date: string
+          id: string
+          start_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_available?: number
+          end_date: string
+          id?: string
+          start_date: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_available?: number
+          end_date?: string
+          id?: string
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_periods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_requests: {
+        Row: {
+          approval_date: string | null
+          approved_by: string | null
+          comments: string | null
+          created_at: string | null
+          days_taken: number
+          end_date: string
+          id: string
+          start_date: string
+          status: Database["public"]["Enums"]["vacation_status"]
+          updated_at: string | null
+          user_id: string
+          vacation_period_id: string
+        }
+        Insert: {
+          approval_date?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string | null
+          days_taken: number
+          end_date: string
+          id?: string
+          start_date: string
+          status?: Database["public"]["Enums"]["vacation_status"]
+          updated_at?: string | null
+          user_id: string
+          vacation_period_id: string
+        }
+        Update: {
+          approval_date?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string | null
+          days_taken?: number
+          end_date?: string
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["vacation_status"]
+          updated_at?: string | null
+          user_id?: string
+          vacation_period_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_vacation_period_id_fkey"
+            columns: ["vacation_period_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -446,6 +551,7 @@ export type Database = {
       subscription_status: "active" | "inactive" | "pending" | "cancelled"
       user_role: "admin" | "user"
       user_status: "active" | "inactive"
+      vacation_status: "pending" | "approved" | "denied" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never

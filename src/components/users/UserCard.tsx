@@ -1,5 +1,7 @@
+
 import { useState } from "react";
 import { Pencil } from "lucide-react";
+import VacationButton from "./VacationButton";
 
 interface UserCardProps {
   user: {
@@ -26,12 +28,17 @@ const UserCard = ({ user, onEdit }: UserCardProps) => {
             {user.status === 'active' ? 'Ativo' : 'Inativo'}
           </span>
         </div>
-        <button
-          onClick={() => onEdit(user)}
-          className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
-        >
-          <Pencil className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {user.status === 'active' && (
+            <VacationButton user={user} />
+          )}
+          <button
+            onClick={() => onEdit(user)}
+            className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       
       <div className="flex justify-between items-center">
