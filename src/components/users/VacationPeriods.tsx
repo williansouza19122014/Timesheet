@@ -16,6 +16,7 @@ interface VacationPeriod {
   end_date: string;
   days_available: number;
   limit_date: string | null;
+  contract_type: string;
 }
 
 interface VacationPeriodsProps {
@@ -36,6 +37,7 @@ const VacationPeriods = ({ periods, isLoading }: VacationPeriodsProps) => {
           <TableHead>Início</TableHead>
           <TableHead>Fim</TableHead>
           <TableHead>Limite para Gozo</TableHead>
+          <TableHead>Tipo Contrato</TableHead>
           <TableHead className="text-right">Dias Disponíveis</TableHead>
         </TableRow>
       </TableHeader>
@@ -54,6 +56,7 @@ const VacationPeriods = ({ periods, isLoading }: VacationPeriodsProps) => {
                 ? format(new Date(period.limit_date), 'dd/MM/yyyy', { locale: ptBR })
                 : '--'}
             </TableCell>
+            <TableCell>{period.contract_type || 'CLT'}</TableCell>
             <TableCell className="text-right">{period.days_available}</TableCell>
           </TableRow>
         ))}

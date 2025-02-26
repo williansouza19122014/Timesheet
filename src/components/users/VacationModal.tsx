@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VacationPeriods from "./VacationPeriods";
 import VacationRequests from "./VacationRequests";
 import NewVacationRequest from "./NewVacationRequest";
+import VacationContractInfo from "./VacationContractInfo";
 import { SystemUser } from "@/types/users";
 
 interface VacationModalProps {
@@ -26,6 +27,7 @@ interface VacationPeriod {
   end_date: string;
   days_available: number;
   limit_date: string | null;
+  contract_type: string;
 }
 
 const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
@@ -68,6 +70,8 @@ const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
           <DialogTitle>Gestão de Férias - {user.name}</DialogTitle>
         </DialogHeader>
 
+        <VacationContractInfo contractType={user.contract_type || 'CLT'} />
+
         <Tabs defaultValue="periods" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="periods">Períodos Aquisitivos</TabsTrigger>
@@ -99,6 +103,7 @@ const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
                   description: "Sua solicitação de férias foi enviada para aprovação"
                 });
               }}
+              contractType={user.contract_type || 'CLT'}
             />
           </TabsContent>
         </Tabs>
