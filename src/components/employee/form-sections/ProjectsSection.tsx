@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -8,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface Client {
   id: string;
@@ -26,6 +29,7 @@ interface ProjectsSectionProps {
   selectedProjects: string[];
   setSelectedClient: (clientId: string) => void;
   handleProjectToggle: (projectId: string) => void;
+  setClients: (clients: Client[]) => void;
 }
 
 export const ProjectsSection = ({
@@ -34,7 +38,40 @@ export const ProjectsSection = ({
   selectedProjects,
   setSelectedClient,
   handleProjectToggle,
+  setClients
 }: ProjectsSectionProps) => {
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          name,
+          projects (
+            id,
+            name
+          )
+        `);
+
+      if (error) throw error;
+      
+      setClients(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar clientes",
+        description: error.message
+      });
+    }
+  };
+
   const currentClientProjects = selectedClient
     ? clients.find(c => c.id === selectedClient)?.projects || []
     : [];

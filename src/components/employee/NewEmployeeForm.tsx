@@ -83,35 +83,6 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     selectedProjects: []
   });
 
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const fetchClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select(`
-          id,
-          name,
-          projects (
-            id,
-            name
-          )
-        `);
-
-      if (error) throw error;
-      setClients(data || []);
-    } catch (error: any) {
-      console.error('Erro ao carregar clientes:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao carregar clientes",
-        description: error.message
-      });
-    }
-  };
-
   const handleInputChange = (field: string, value: string) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
@@ -176,7 +147,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
         const projectMembers = formData.selectedProjects.map(projectId => ({
           user_id: employeeData.id,
           project_id: projectId,
-          start_date: new Date().toISOString().split('T')[0],
+          start_date: formData.hire_date,
           role: formData.position
         }));
 
@@ -187,6 +158,11 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
         if (projectMemberError) throw projectMemberError;
       }
 
+      toast({
+        title: "Colaborador cadastrado com sucesso!",
+        description: `${formData.name} foi adicionado à equipe.`
+      });
+      
       onSuccess();
     } catch (error: any) {
       console.error('Erro ao cadastrar colaborador:', error);
@@ -233,6 +209,7 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
             selectedProjects={formData.selectedProjects}
             setSelectedClient={setSelectedClient}
             handleProjectToggle={handleProjectToggle}
+            setClients={setClients}
           />
         </div>
 
