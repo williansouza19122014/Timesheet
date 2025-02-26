@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface NewEmployeeFormProps {
   onSuccess: () => void;
@@ -25,6 +27,17 @@ interface Address {
   city: string;
   state: string;
   zip_code: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  projects: Project[];
+}
+
+interface Project {
+  id: string;
+  name: string;
 }
 
 interface EmployeeFormData {
@@ -42,11 +55,14 @@ interface EmployeeFormData {
   address: Address;
   manager_id?: string;
   additional_notes?: string;
+  selectedProjects: string[];
 }
 
 const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<string>("");
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: "",
     cpf: "",
@@ -69,7 +85,37 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
       zip_code: "",
     },
     additional_notes: "",
+    selectedProjects: []
   });
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          name,
+          projects (
+            id,
+            name
+          )
+        `);
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar clientes:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar clientes",
+        description: error.message
+      });
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     if (field.includes('.')) {
@@ -91,6 +137,15 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     }
   };
 
+  const handleProjectToggle = (projectId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedProjects: prev.selectedProjects.includes(projectId)
+        ? prev.selectedProjects.filter(id => id !== projectId)
+        : [...prev.selectedProjects, projectId]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -98,7 +153,8 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
     try {
       const cpf = formData.cpf.replace(/\D/g, '');
 
-      const { data, error } = await supabase
+      // 1. Inserir o colaborador
+      const { data: employeeData, error: employeeError } = await supabase
         .from('system_users')
         .insert({
           name: formData.name,
@@ -120,7 +176,23 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (employeeError) throw employeeError;
+
+      // 2. Inserir as associações com projetos
+      if (formData.selectedProjects.length > 0) {
+        const projectMembers = formData.selectedProjects.map(projectId => ({
+          user_id: employeeData.id,
+          project_id: projectId,
+          start_date: new Date().toISOString().split('T')[0],
+          role: formData.position // Usando o cargo como role inicial
+        }));
+
+        const { error: projectMemberError } = await supabase
+          .from('project_members')
+          .insert(projectMembers);
+
+        if (projectMemberError) throw projectMemberError;
+      }
 
       onSuccess();
     } catch (error: any) {
@@ -134,6 +206,10 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
       setIsLoading(false);
     }
   };
+
+  const currentClientProjects = selectedClient
+    ? clients.find(c => c.id === selectedClient)?.projects || []
+    : [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -336,6 +412,43 @@ const NewEmployeeForm = ({ onSuccess }: NewEmployeeFormProps) => {
             />
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Projetos</h3>
+        <div className="space-y-2">
+          <Label>Selecione o Cliente</Label>
+          <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map(client => (
+                <SelectItem key={client.id} value={client.id}>
+                  {client.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedClient && (
+          <div className="space-y-2">
+            <Label>Projetos do Cliente</Label>
+            <div className="grid grid-cols-2 gap-4">
+              {currentClientProjects.map(project => (
+                <div key={project.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`project-${project.id}`}
+                    checked={formData.selectedProjects.includes(project.id)}
+                    onCheckedChange={() => handleProjectToggle(project.id)}
+                  />
+                  <Label htmlFor={`project-${project.id}`}>{project.name}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -20,26 +20,37 @@ interface Employee {
   department: string;
   hire_date: string;
   status: string;
+  projects?: Project[];
+}
+
+interface Project {
+  id: string;
+  name: string;
+  client_id: string;
 }
 
 const EmployeeRegistration = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<Partial<Record<keyof Employee, string>>>({});
+  const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
   const fetchEmployees = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data: employeesData, error: employeesError } = await supabase
         .from('system_users')
-        .select('*')
-        .order('name');
+        .select('*, project_members(project_id, projects(id, name, client_id))');
 
-      if (error) throw error;
+      if (employeesError) throw employeesError;
 
-      setEmployees(data || []);
+      const formattedEmployees = employeesData.map((employee: any) => ({
+        ...employee,
+        projects: employee.project_members?.map((pm: any) => pm.projects) || []
+      }));
+
+      setEmployees(formattedEmployees);
     } catch (error: any) {
       console.error('Erro ao carregar colaboradores:', error);
       toast({
@@ -52,31 +63,18 @@ const EmployeeRegistration = () => {
     }
   };
 
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
   const handleSearch = (value: string) => {
     setSearchQuery(value.toLowerCase());
   };
 
-  const handleFilter = (column: keyof Employee, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [column]: value.toLowerCase()
-    }));
-  };
-
   const filteredEmployees = employees.filter(employee => {
-    // Aplicar busca global
-    if (searchQuery && !Object.values(employee).some(value => 
+    return Object.values(employee).some(value => 
       String(value).toLowerCase().includes(searchQuery)
-    )) {
-      return false;
-    }
-
-    // Aplicar filtros por coluna
-    return Object.entries(filters).every(([column, filterValue]) => {
-      if (!filterValue) return true;
-      const cellValue = String(employee[column as keyof Employee]).toLowerCase();
-      return cellValue.includes(filterValue);
-    });
+    );
   });
 
   return (
@@ -86,7 +84,7 @@ const EmployeeRegistration = () => {
         <div className="flex gap-4">
           <ReportDialog employees={employees} />
           
-          <Dialog>
+          <Dialog open={showForm} onOpenChange={setShowForm}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -97,12 +95,15 @@ const EmployeeRegistration = () => {
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Colaborador</DialogTitle>
               </DialogHeader>
-              <NewEmployeeForm onSuccess={() => {
-                fetchEmployees();
-                toast({
-                  title: "Colaborador cadastrado com sucesso!"
-                });
-              }} />
+              <NewEmployeeForm 
+                onSuccess={() => {
+                  fetchEmployees();
+                  setShowForm(false);
+                  toast({
+                    title: "Colaborador cadastrado com sucesso!"
+                  });
+                }} 
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -124,57 +125,13 @@ const EmployeeRegistration = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    Nome
-                    <Input
-                      placeholder="Filtrar"
-                      className="w-24 h-8"
-                      onChange={(e) => handleFilter('name', e.target.value)}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    Email
-                    <Input
-                      placeholder="Filtrar"
-                      className="w-24 h-8"
-                      onChange={(e) => handleFilter('email', e.target.value)}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    Cargo
-                    <Input
-                      placeholder="Filtrar"
-                      className="w-24 h-8"
-                      onChange={(e) => handleFilter('position', e.target.value)}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    Departamento
-                    <Input
-                      placeholder="Filtrar"
-                      className="w-24 h-8"
-                      onChange={(e) => handleFilter('department', e.target.value)}
-                    />
-                  </div>
-                </TableHead>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    Data Admissão
-                    <Input
-                      placeholder="Filtrar"
-                      className="w-24 h-8"
-                      onChange={(e) => handleFilter('hire_date', e.target.value)}
-                    />
-                  </div>
-                </TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Cargo</TableHead>
+                <TableHead>Departamento</TableHead>
+                <TableHead>Data Admissão</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Projetos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,6 +150,11 @@ const EmployeeRegistration = () => {
                     }`}>
                       {employee.status === 'active' ? 'Ativo' : 'Inativo'}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {employee.projects?.length > 0 
+                      ? employee.projects.map(p => p.name).join(", ")
+                      : "Nenhum projeto"}
                   </TableCell>
                 </TableRow>
               ))}
