@@ -30,9 +30,10 @@ interface NewVacationRequestProps {
   userId: string;
   periods: VacationPeriod[];
   onSuccess: () => void;
+  contractType: string; // Adicionando a nova prop
 }
 
-const NewVacationRequest = ({ userId, periods, onSuccess }: NewVacationRequestProps) => {
+const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVacationRequestProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
