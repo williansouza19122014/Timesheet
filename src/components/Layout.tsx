@@ -73,12 +73,6 @@ const Layout = () => {
     },
   ];
 
-  const getCurrentPageName = () => {
-    const currentRoute = navigation.find(item => item.href === location.pathname) || 
-                        secondaryNavigation.find(item => item.href === location.pathname);
-    return currentRoute?.name || "Timesheet";
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex min-h-screen">
@@ -146,7 +140,7 @@ const Layout = () => {
               <Menu className="h-6 w-6" />
             </Button>
             
-            <h1 className="text-2xl font-semibold flex-1">{getCurrentPageName()}</h1>
+            <div className="flex-1" /> {/* Espaço vazio onde estava o título */}
             
             <div className="flex items-center gap-4">
               <Inbox>
