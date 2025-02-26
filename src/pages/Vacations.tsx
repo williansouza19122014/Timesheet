@@ -29,6 +29,7 @@ interface VacationPeriod {
   status: string;
   sold_days: number;
   payment_date: string | null;
+  contract_type: string;
 }
 
 interface VacationRequest {
@@ -177,6 +178,7 @@ const Vacations = () => {
                     description: "Sua solicitação de férias foi enviada para aprovação"
                   });
                 }}
+                contractType={periods[0]?.contract_type || 'CLT'}
               />
             </DialogContent>
           </Dialog>
