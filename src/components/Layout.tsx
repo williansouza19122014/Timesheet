@@ -1,5 +1,5 @@
 
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Clock,
@@ -20,6 +20,7 @@ import { Button } from "./ui/button";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
 
   const navigation = [
     {
@@ -72,6 +73,12 @@ const Layout = () => {
     },
   ];
 
+  const getCurrentPageName = () => {
+    const currentRoute = navigation.find(item => item.href === location.pathname) || 
+                        secondaryNavigation.find(item => item.href === location.pathname);
+    return currentRoute?.name || "Timesheet";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex min-h-screen">
@@ -83,12 +90,8 @@ const Layout = () => {
           )}
         >
           <div className="flex h-16 items-center gap-2 px-6 border-b">
-            <img
-              src="/favicon.ico"
-              alt="Logo"
-              className="w-8 h-8"
-            />
-            <span className="text-xl font-semibold">Ponto Digital</span>
+            <Clock className="w-8 h-8 text-accent" />
+            <span className="text-xl font-semibold">Timesheet</span>
           </div>
 
           <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
@@ -143,7 +146,7 @@ const Layout = () => {
               <Menu className="h-6 w-6" />
             </Button>
             
-            <h1 className="text-2xl font-semibold flex-1">Ponto Digital</h1>
+            <h1 className="text-2xl font-semibold flex-1">{getCurrentPageName()}</h1>
             
             <div className="flex items-center gap-4">
               <Inbox>
