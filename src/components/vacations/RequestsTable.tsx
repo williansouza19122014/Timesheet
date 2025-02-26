@@ -7,12 +7,13 @@ import { VacationRequest } from "@/types/vacations";
 
 interface RequestsTableProps {
   requests: VacationRequest[];
+  isPJ?: boolean;
 }
 
-const RequestsTable = ({ requests }: RequestsTableProps) => {
+const RequestsTable = ({ requests, isPJ = false }: RequestsTableProps) => {
   return (
     <div>
-      <h3 className="text-lg font-medium mb-4">Solicitações</h3>
+      <h3 className="text-lg font-medium mb-4">Solicitações de {isPJ ? 'Descanso' : 'Férias'}</h3>
       <Table>
         <TableHeader>
           <TableRow>
