@@ -27,13 +27,21 @@ const Login = () => {
     setErrorMessage(null);
 
     try {
+      // Mostrar dados para debug
+      console.log("Tentando login com:", { email: formData.email, password: formData.password });
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro detalhado do Supabase:", error);
+        throw error;
+      }
 
+      console.log("Login bem-sucedido:", data);
+      
       toast({
         title: "Login bem-sucedido!",
         description: "Redirecionando para o dashboard...",
@@ -42,14 +50,24 @@ const Login = () => {
       // Aguardar um momento antes de redirecionar
       setTimeout(() => {
         navigate("/");
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       console.error('Erro no login:', error);
-      setErrorMessage(error.message || "Erro ao fazer login. Verifique suas credenciais.");
+      
+      // Mensagem de erro mais detalhada
+      let errorMsg = "Credenciais inválidas. Verifique seu e-mail e senha.";
+      if (error.message) {
+        errorMsg = `Erro: ${error.message}`;
+        if (error.message.includes("Invalid login credentials")) {
+          errorMsg = "E-mail ou senha incorretos. Verifique suas credenciais.";
+        }
+      }
+      
+      setErrorMessage(errorMsg);
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
-        description: error.message || "Verifique suas credenciais e tente novamente.",
+        description: errorMsg,
       });
     } finally {
       setIsLoading(false);
@@ -62,23 +80,36 @@ const Login = () => {
     setErrorMessage(null);
 
     try {
+      console.log("Tentando registrar com:", { 
+        email: formData.email, 
+        password: formData.password,
+        companyName: formData.companyName,
+        cnpj: formData.cnpj
+      });
+      
       // 1. Criar usuário no auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("Erro de autenticação:", authError);
+        throw authError;
+      }
+
+      console.log("Resposta do signUp:", authData);
 
       if (!authData.user) {
-        throw new Error("Erro ao criar usuário");
+        throw new Error("Erro ao criar usuário - Nenhum usuário retornado");
       }
 
       // Usuário já existe? Prosseguir com login
       if (authData.user && !authData.session) {
+        setErrorMessage("Usuário já existe. Tente fazer login na aba de Login.");
         toast({
           title: "Usuário já existe",
-          description: "Faça login com suas credenciais.",
+          description: "Usuário já registrado. Por favor, faça login com suas credenciais.",
         });
         setIsLoading(false);
         return;
@@ -101,6 +132,8 @@ const Login = () => {
 
         if (customerError) {
           console.warn('Erro ao criar cliente, continuando sem criar cliente:', customerError);
+        } else {
+          console.log("Cliente criado:", customer);
         }
 
         // 3. Atualizar perfil do usuário como admin
@@ -113,16 +146,14 @@ const Login = () => {
           .eq('id', authData.user.id);
 
         if (profileError) {
-          console.warn('Erro ao atualizar perfil, tentando método alternativo:', profileError);
-          
-          // Método alternativo: update direto via SQL RPC
-          const { error: rpcError } = await supabase.rpc('set_user_as_admin', {
-            user_id: authData.user.id
+          console.warn('Erro ao atualizar perfil:', profileError);
+          toast({
+            variant: "warning",
+            title: "Aviso",
+            description: "Conta criada, mas houve um problema ao definir permissões de administrador.",
           });
-          
-          if (rpcError) {
-            console.error('Erro no método alternativo:', rpcError);
-          }
+        } else {
+          console.log("Perfil atualizado como admin");
         }
       } catch (err) {
         console.warn('Erro ao configurar cliente/perfil, mas continuando com autenticação:', err);
@@ -136,17 +167,49 @@ const Login = () => {
       // Redirecionar para o dashboard, já que o usuário está logado
       setTimeout(() => {
         navigate("/");
-      }, 1000);
+      }, 1500);
     } catch (error: any) {
       console.error('Erro detalhado no registro:', error);
-      setErrorMessage(
-        error.message || 
-        "Ocorreu um erro ao criar sua conta. Verifique seus dados e tente novamente."
-      );
+      
+      let errorMsg = "Ocorreu um erro ao criar sua conta. Verifique seus dados e tente novamente.";
+      if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setErrorMessage(errorMsg);
       toast({
         variant: "destructive",
         title: "Erro ao criar conta",
-        description: error.message || "Ocorreu um erro ao criar sua conta.",
+        description: errorMsg,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!formData.email) {
+      setErrorMessage("Digite seu e-mail para redefinir a senha");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "E-mail enviado",
+        description: "Verifique sua caixa de entrada para instruções de redefinição de senha",
+      });
+    } catch (error: any) {
+      console.error("Erro ao redefinir senha:", error);
+      setErrorMessage(error.message || "Não foi possível enviar o e-mail de redefinição");
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message || "Falha ao enviar e-mail de redefinição",
       });
     } finally {
       setIsLoading(false);
@@ -225,6 +288,17 @@ const Login = () => {
                     "Entrar"
                   )}
                 </Button>
+
+                <div className="text-center">
+                  <button 
+                    type="button" 
+                    onClick={handleResetPassword}
+                    className="text-sm text-blue-600 hover:underline"
+                    disabled={isLoading}
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                </div>
               </form>
             </div>
           </TabsContent>
@@ -301,8 +375,12 @@ const Login = () => {
                       className="pl-10"
                       placeholder="••••••••"
                       required
+                      minLength={6}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    A senha deve ter pelo menos 6 caracteres
+                  </p>
                 </div>
 
                 <Button
