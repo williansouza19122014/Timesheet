@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,24 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Verificar se temos um token na URL
+  useEffect(() => {
+    // Verificar se temos parâmetros na URL
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    
+    if (!token) {
+      toast({
+        variant: "destructive",
+        title: "Link inválido",
+        description: "Este link de redefinição de senha é inválido ou expirou.",
+      });
+      navigate("/login");
+    }
+  }, [location.search, navigate, toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +40,15 @@ const ResetPassword = () => {
         variant: "destructive",
         title: "Senhas diferentes",
         description: "As senhas digitadas não são iguais",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres",
       });
       return;
     }
@@ -41,12 +67,15 @@ const ResetPassword = () => {
         description: "Sua senha foi atualizada com sucesso",
       });
 
-      navigate("/login");
+      // Pequeno delay para mostrar o toast antes de redirecionar
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro ao atualizar senha",
-        description: error.message,
+        description: error.message || "Ocorreu um erro ao atualizar sua senha",
       });
     } finally {
       setIsLoading(false);
