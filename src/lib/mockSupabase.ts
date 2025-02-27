@@ -273,8 +273,8 @@ const mockApi = (table: string) => {
       lte: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] <= value) : []),
       is: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] === value) : []),
       in: (column: string, values: any[]) => createQueryResponse(Array.isArray(data) ? data.filter(item => values.includes(item[column])) : []),
-      not: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : []),
-      select: () => createQueryResponse(data) // Adicionado para corrigir o erro no Settings.tsx
+      not: (column: string, value: any, thirdParam?: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : []),
+      select: (columns?: string) => createQueryResponse(data) // Aceita argumento opcional
     };
   };
 
@@ -298,7 +298,7 @@ const mockApi = (table: string) => {
       });
       return {
         ...createQueryResponse(insertedRecords),
-        select: () => createQueryResponse(insertedRecords)
+        select: (columns?: string) => createQueryResponse(insertedRecords)
       };
     },
     update: (data: any) => {
@@ -309,7 +309,10 @@ const mockApi = (table: string) => {
           if (index !== -1) {
             tableData[index] = { ...tableData[index], ...data };
           }
-          return createQueryResponse(null);
+          return { 
+            ...createQueryResponse(null),
+            select: (columns?: string) => createQueryResponse(null)
+          };
         },
         match: (filters: Record<string, any>) => {
           tableData.forEach((item, index) => {
