@@ -1,4 +1,3 @@
-
 // Simulação do Supabase com dados locais
 import { v4 as uuidv4 } from 'uuid';
 
@@ -250,36 +249,42 @@ const mockApi = (table: string) => {
   let currentData = [...tableData];
   let selectedColumns: string[] | null = null;
 
-  const handleSelect = (columns?: string) => {
-    if (columns) {
-      selectedColumns = columns.split(',').map(col => col.trim());
-    }
-    return queryBuilder;
-  };
-
-  const applyFilters = () => {
-    let filteredData = [...tableData];
-    
-    for (const [key, value] of Object.entries(currentFilters)) {
-      filteredData = filteredData.filter(item => item[key] === value);
-    }
-    
-    return filteredData;
-  };
-
-  const applyOrder = (data: any[], column: string, ascending: boolean = true) => {
-    return [...data].sort((a, b) => {
-      if (a[column] < b[column]) return ascending ? -1 : 1;
-      if (a[column] > b[column]) return ascending ? 1 : -1;
-      return 0;
-    });
+  const createQueryResponse = (data: any) => {
+    return {
+      data,
+      error: null,
+      single: () => createResponse(data?.length > 0 ? data[0] : null),
+      maybeSingle: () => createResponse(data?.length > 0 ? data[0] : null),
+      order: (column: string, options?: { ascending?: boolean }) => {
+        const ascending = options?.ascending !== false;
+        const sortedData = [...(Array.isArray(data) ? data : [])].sort((a, b) => {
+          if (a[column] < b[column]) return ascending ? -1 : 1;
+          if (a[column] > b[column]) return ascending ? 1 : -1;
+          return 0;
+        });
+        return createQueryResponse(sortedData);
+      },
+      eq: (column: string, value: any) => createQueryResponse(filterData(data, { [column]: value })),
+      neq: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : []),
+      gt: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] > value) : []),
+      gte: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] >= value) : []),
+      lt: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] < value) : []),
+      lte: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] <= value) : []),
+      is: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] === value) : []),
+      in: (column: string, values: any[]) => createQueryResponse(Array.isArray(data) ? data.filter(item => values.includes(item[column])) : []),
+      not: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : [])
+    };
   };
 
   // Query builder para simular a API do Supabase
   const queryBuilder = {
-    select: handleSelect,
+    select: (columns?: string) => {
+      if (columns) {
+        selectedColumns = columns.split(',').map(col => col.trim());
+      }
+      return createQueryResponse(currentData);
+    },
     insert: (records: any[]) => {
-      console.log(`Mock insert into ${table}:`, records);
       const insertedRecords = records.map(record => {
         const newRecord = {
           id: uuidv4(),
@@ -289,24 +294,20 @@ const mockApi = (table: string) => {
         tableData.push(newRecord);
         return newRecord;
       });
-
       return {
-        select: () => createResponse(insertedRecords),
-        data: insertedRecords,
-        error: null,
-        maybeSingle: () => createResponse(insertedRecords[0]),
-        single: () => createResponse(insertedRecords[0])
+        ...createQueryResponse(insertedRecords),
+        select: () => createQueryResponse(insertedRecords)
       };
     },
     update: (data: any) => {
       return {
+        ...createQueryResponse(null),
         eq: (column: string, value: any) => {
-          console.log(`Mock update ${table} where ${column} = ${value}:`, data);
           const index = tableData.findIndex(item => item[column] === value);
           if (index !== -1) {
             tableData[index] = { ...tableData[index], ...data };
           }
-          return createResponse(null);
+          return createQueryResponse(null);
         },
         match: (filters: Record<string, any>) => {
           tableData.forEach((item, index) => {
@@ -321,167 +322,41 @@ const mockApi = (table: string) => {
               tableData[index] = { ...tableData[index], ...data };
             }
           });
-          return createResponse(null);
-        },
-        is: (column: string, value: any) => {
-          return createResponse(null);
-        },
-        in: (column: string, values: any[]) => {
-          return createResponse(null);
-        },
-        filter: (column: string, operator: string, value: any) => {
-          return createResponse(null);
+          return createQueryResponse(null);
         }
       };
     },
-    upsert: (records: any[]) => {
-      // Implementação simplificada de upsert
-      records.forEach(record => {
+    upsert: (records: any[], options?: any) => {
+      const upsertedRecords = records.map(record => {
         if (record.id) {
           const index = tableData.findIndex(item => item.id === record.id);
           if (index !== -1) {
             tableData[index] = { ...tableData[index], ...record };
-          } else {
-            tableData.push({
-              id: record.id,
-              ...record,
-              created_at: record.created_at || new Date().toISOString()
-            });
+            return tableData[index];
           }
-        } else {
-          tableData.push({
-            id: uuidv4(),
-            ...record,
-            created_at: record.created_at || new Date().toISOString()
-          });
         }
+        const newRecord = {
+          id: record.id || uuidv4(),
+          ...record,
+          created_at: record.created_at || new Date().toISOString()
+        };
+        tableData.push(newRecord);
+        return newRecord;
       });
-      return createResponse(records);
+      return createQueryResponse(upsertedRecords);
     },
-    delete: () => {
-      return {
-        eq: (column: string, value: any) => {
-          const initialLength = tableData.length;
-          const index = tableData.findIndex(item => item[column] === value);
-          if (index !== -1) {
-            tableData.splice(index, 1);
-          }
-          return createResponse({ count: initialLength - tableData.length });
-        },
-        match: (filters: Record<string, any>) => {
-          const initialLength = tableData.length;
-          const newTableData = tableData.filter(item => {
-            for (const [key, value] of Object.entries(filters)) {
-              if (item[key] !== value) return true;
-            }
-            return false;
-          });
-          const deletedCount = initialLength - newTableData.length;
-          tableData = newTableData;
-          return createResponse({ count: deletedCount });
+    delete: () => ({
+      ...createQueryResponse(null),
+      eq: (column: string, value: any) => {
+        const initialLength = tableData.length;
+        const index = tableData.findIndex(item => item[column] === value);
+        if (index !== -1) {
+          tableData.splice(index, 1);
         }
-      };
-    },
-    eq: (column: string, value: any) => {
-      currentFilters[column] = value;
-      currentData = applyFilters();
-      
-      return {
-        data: currentData,
-        error: null,
-        single: () => createResponse(currentData.length > 0 ? currentData[0] : null, 
-                                 currentData.length === 0 ? { message: 'No rows found' } : null),
-        maybeSingle: () => createResponse(currentData.length > 0 ? currentData[0] : null)
-      };
-    },
-    neq: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] !== value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    gt: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] > value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    gte: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] >= value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    lt: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] < value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    lte: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] <= value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    is: (column: string, value: any) => {
-      if (value === null) {
-        currentData = tableData.filter(item => item[column] === null);
-      } else {
-        currentData = tableData.filter(item => item[column] === value);
+        return createResponse({ count: initialLength - tableData.length });
       }
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    in: (column: string, values: any[]) => {
-      currentData = tableData.filter(item => values.includes(item[column]));
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    not: (column: string, value: any) => {
-      currentData = tableData.filter(item => item[column] !== value);
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    match: (filters: Record<string, any>) => {
-      Object.entries(filters).forEach(([key, value]) => {
-        currentFilters[key] = value;
-      });
-      currentData = applyFilters();
-      
-      return {
-        data: currentData,
-        error: null
-      };
-    },
-    order: (column: string, options?: { ascending?: boolean }) => {
-      const ascending = options?.ascending !== false;
-      currentData = applyOrder(currentData, column, ascending);
-      
-      return {
-        data: currentData,
-        error: null,
-        limit: (limit: number) => {
-          currentData = currentData.slice(0, limit);
-          return {
-            data: currentData,
-            error: null
-          };
-        },
-        single: () => createResponse(currentData.length > 0 ? currentData[0] : null)
-      };
-    }
+    }),
+    ...createQueryResponse(currentData)
   };
 
   return queryBuilder;
