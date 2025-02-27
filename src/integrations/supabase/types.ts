@@ -69,6 +69,56 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_cards: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          labels: string[] | null
+          priority: string | null
+          project_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          labels?: string[] | null
+          priority?: string | null
+          project_id?: string | null
+          status: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          labels?: string[] | null
+          priority?: string | null
+          project_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_cards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           code: string
@@ -370,6 +420,7 @@ export type Database = {
           name: string
           phone: string | null
           position: string | null
+          role: string | null
           status: Database["public"]["Enums"]["user_status"] | null
           termination_date: string | null
           updated_at: string | null
@@ -393,6 +444,7 @@ export type Database = {
           name: string
           phone?: string | null
           position?: string | null
+          role?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           termination_date?: string | null
           updated_at?: string | null
@@ -416,6 +468,7 @@ export type Database = {
           name?: string
           phone?: string | null
           position?: string | null
+          role?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           termination_date?: string | null
           updated_at?: string | null
@@ -616,6 +669,17 @@ export type Database = {
           end_date: string
         }
         Returns: number
+      }
+      get_user_monthly_hours: {
+        Args: {
+          user_id: string
+          year_month: string
+        }
+        Returns: {
+          day: number
+          total_hours: unknown
+          project_hours: unknown
+        }[]
       }
     }
     Enums: {
