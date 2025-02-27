@@ -1,3 +1,4 @@
+
 // Simulação do Supabase com dados locais
 import { v4 as uuidv4 } from 'uuid';
 
@@ -272,7 +273,8 @@ const mockApi = (table: string) => {
       lte: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] <= value) : []),
       is: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] === value) : []),
       in: (column: string, values: any[]) => createQueryResponse(Array.isArray(data) ? data.filter(item => values.includes(item[column])) : []),
-      not: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : [])
+      not: (column: string, value: any) => createQueryResponse(Array.isArray(data) ? data.filter(item => item[column] !== value) : []),
+      select: () => createQueryResponse(data) // Adicionado para corrigir o erro no Settings.tsx
     };
   };
 
