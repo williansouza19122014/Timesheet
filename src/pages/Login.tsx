@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Loader2, Building2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -19,7 +19,23 @@ const Login = () => {
     cnpj: "",
   });
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Verificar a query string para mensagens
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const message = searchParams.get('message');
+    
+    if (message) {
+      if (message === 'reset_requested') {
+        toast({
+          title: "E-mail enviado",
+          description: "Instruções de redefinição de senha foram enviadas para seu e-mail",
+        });
+      }
+    }
+  }, [location, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,19 +206,30 @@ const Login = () => {
   const handleResetPassword = async () => {
     if (!formData.email) {
       setErrorMessage("Digite seu e-mail para redefinir a senha");
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Digite seu e-mail para redefinir a senha",
+      });
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(formData.email);
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
       
       if (error) throw error;
       
+      setErrorMessage(null);
       toast({
         title: "E-mail enviado",
         description: "Verifique sua caixa de entrada para instruções de redefinição de senha",
       });
+      
+      // Redirecionar para a mesma página com um parâmetro para mostrar uma mensagem
+      navigate('/login?message=reset_requested');
     } catch (error: any) {
       console.error("Erro ao redefinir senha:", error);
       setErrorMessage(error.message || "Não foi possível enviar o e-mail de redefinição");
