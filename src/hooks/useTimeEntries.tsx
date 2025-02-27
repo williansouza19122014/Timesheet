@@ -72,6 +72,7 @@ export const useTimeEntries = (selectedMonth: Date) => {
         });
 
         setEntries(formattedEntries);
+        console.log("Entradas carregadas:", formattedEntries);
       } catch (error: any) {
         console.error('Erro ao carregar registros:', error);
         toast({
@@ -85,15 +86,7 @@ export const useTimeEntries = (selectedMonth: Date) => {
     fetchTimeEntries();
   }, [selectedMonth, user?.id, toast]);
 
-  const calculateTotalHours = (date: string, field: string, newValue: string): string => {
-    const entry = entries[date] || {
-      entrada1: "", saida1: "",
-      entrada2: "", saida2: "",
-      entrada3: "", saida3: "",
-    };
-    
-    const updatedEntry = { ...entry, [field]: newValue };
-    
+  const calculateTotalHours = (entry: any): string => {
     let totalMinutes = 0;
     
     const calcPair = (entrada: string, saida: string) => {
@@ -105,9 +98,9 @@ export const useTimeEntries = (selectedMonth: Date) => {
       return 0;
     };
     
-    totalMinutes += calcPair(updatedEntry.entrada1, updatedEntry.saida1);
-    totalMinutes += calcPair(updatedEntry.entrada2, updatedEntry.saida2);
-    totalMinutes += calcPair(updatedEntry.entrada3, updatedEntry.saida3);
+    totalMinutes += calcPair(entry.entrada1, entry.saida1);
+    totalMinutes += calcPair(entry.entrada2, entry.saida2);
+    totalMinutes += calcPair(entry.entrada3, entry.saida3);
     
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -116,6 +109,7 @@ export const useTimeEntries = (selectedMonth: Date) => {
   };
 
   const handleRegisterTime = async () => {
+    console.log("Registrando ponto...");
     if (!user?.id) {
       toast({
         variant: "destructive",
@@ -140,14 +134,23 @@ export const useTimeEntries = (selectedMonth: Date) => {
     const currentHour = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
     try {
-      const entry = entries[today] || {
-        entrada1: "", saida1: "",
-        entrada2: "", saida2: "",
-        entrada3: "", saida3: "",
-        totalHoras: "00:00",
-        projetos: []
+      // Buscar registro atual se existir
+      const { data: existingEntry, error: fetchError } = await supabase
+        .from('time_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('entry_date', today)
+        .maybeSingle();
+        
+      if (fetchError) throw fetchError;
+      
+      let entry = existingEntry || {
+        entrada1: null, saida1: null,
+        entrada2: null, saida2: null,
+        entrada3: null, saida3: null,
+        total_hours: "00:00"
       };
-
+      
       let fieldToUpdate = "";
       if (!entry.entrada1) fieldToUpdate = "entrada1";
       else if (!entry.saida1) fieldToUpdate = "saida1";
@@ -164,35 +167,49 @@ export const useTimeEntries = (selectedMonth: Date) => {
         return;
       }
 
-      const updatedEntry = {
+      // Atualizar o valor do campo correspondente
+      entry = {
         ...entry,
-        [fieldToUpdate]: currentHour
+        [fieldToUpdate]: currentHour,
+        user_id: user.id,
+        entry_date: today
       };
+      
+      // Calcular horas totais
+      const entryForCalc = {
+        entrada1: entry.entrada1 || "",
+        saida1: entry.saida1 || "",
+        entrada2: entry.entrada2 || "",
+        saida2: entry.saida2 || "",
+        entrada3: entry.entrada3 || "",
+        saida3: entry.saida3 || ""
+      };
+      
+      const totalHours = calculateTotalHours(entryForCalc);
+      entry.total_hours = totalHours;
 
-      const totalHours = calculateTotalHours(today, fieldToUpdate, currentHour);
-      updatedEntry.totalHoras = totalHours;
-
+      console.log("Enviando dados:", entry);
+      
+      // Inserir ou atualizar o registro
       const { error } = await supabase
         .from('time_entries')
-        .upsert({
-          user_id: user.id,
-          entry_date: today,
-          entrada1: updatedEntry.entrada1 || null,
-          saida1: updatedEntry.saida1 || null,
-          entrada2: updatedEntry.entrada2 || null,
-          saida2: updatedEntry.saida2 || null,
-          entrada3: updatedEntry.entrada3 || null,
-          saida3: updatedEntry.saida3 || null,
-          total_hours: totalHours
-        }, {
-          onConflict: 'user_id,entry_date'
-        });
+        .upsert(entry, { onConflict: 'user_id,entry_date' });
 
       if (error) throw error;
 
+      // Atualizar estado local
       setEntries(prev => ({
         ...prev,
-        [today]: updatedEntry
+        [today]: {
+          entrada1: entry.entrada1 || "",
+          saida1: entry.saida1 || "",
+          entrada2: entry.entrada2 || "",
+          saida2: entry.saida2 || "",
+          entrada3: entry.entrada3 || "",
+          saida3: entry.saida3 || "",
+          totalHoras: totalHours,
+          projetos: []
+        }
       }));
 
       setLastRecordTime(now);

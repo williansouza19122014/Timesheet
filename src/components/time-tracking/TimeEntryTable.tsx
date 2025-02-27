@@ -1,4 +1,5 @@
 
+import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import ProjectAllocation from "./ProjectAllocation";
 
@@ -69,15 +70,15 @@ const TimeEntryTable = ({
         <table className="w-full">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="text-left py-2 px-4">Data</th>
-              <th className="text-left py-2 px-4">Dia</th>
-              <th className="text-left py-2 px-4">Entrada 1</th>
-              <th className="text-left py-2 px-4">Saída 1</th>
-              <th className="text-left py-2 px-4">Entrada 2</th>
-              <th className="text-left py-2 px-4">Saída 2</th>
-              <th className="text-left py-2 px-4">Entrada 3</th>
-              <th className="text-left py-2 px-4">Saída 3</th>
-              <th className="text-left py-2 px-4">Total</th>
+              <th className="text-center py-2 px-4">Data</th>
+              <th className="text-center py-2 px-4">Dia</th>
+              <th className="text-center py-2 px-4">Entrada 1</th>
+              <th className="text-center py-2 px-4">Saída 1</th>
+              <th className="text-center py-2 px-4">Entrada 2</th>
+              <th className="text-center py-2 px-4">Saída 2</th>
+              <th className="text-center py-2 px-4">Entrada 3</th>
+              <th className="text-center py-2 px-4">Saída 3</th>
+              <th className="text-center py-2 px-4">Total</th>
               <th className="w-10"></th>
             </tr>
           </thead>
@@ -93,60 +94,60 @@ const TimeEntryTable = ({
               };
 
               return (
-                <>
-                  <tr key={dateStr} className={getRowClassName(date, entry)}>
-                    <td className="py-1.5 px-4">{formatDate(date)}</td>
-                    <td className="py-1.5 px-4">{diasSemana[date.getDay()]}</td>
-                    <td className="py-1.5 px-4">
+                <React.Fragment key={dateStr}>
+                  <tr className={getRowClassName(date, entry)}>
+                    <td className="py-1.5 px-4 text-center">{formatDate(date)}</td>
+                    <td className="py-1.5 px-4 text-center">{diasSemana[date.getDay()]}</td>
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.entrada1}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.saida1}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.entrada2}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.saida2}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.entrada3}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 text-center">
                       <input
                         type="time"
                         value={entry.saida3}
                         readOnly
-                        className="border rounded p-1 bg-transparent"
+                        className="border rounded p-1 bg-transparent text-center mx-auto block"
                       />
                     </td>
-                    <td className="py-1.5 px-4 font-medium">{entry.totalHoras}</td>
-                    <td className="py-1.5 px-4">
+                    <td className="py-1.5 px-4 font-medium text-center">{entry.totalHoras}</td>
+                    <td className="py-1.5 px-4 text-center">
                       <button
                         onClick={() => onToggleExpand(index)}
                         className="p-1 hover:bg-muted rounded transition-colors"
@@ -172,7 +173,7 @@ const TimeEntryTable = ({
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </tbody>
