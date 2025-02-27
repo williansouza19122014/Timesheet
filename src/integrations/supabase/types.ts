@@ -681,6 +681,12 @@ export type Database = {
           project_hours: unknown
         }[]
       }
+      has_permission: {
+        Args: {
+          permission_code: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       subscription_status: "active" | "inactive" | "pending" | "cancelled"
