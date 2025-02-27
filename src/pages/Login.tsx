@@ -147,8 +147,8 @@ const Login = () => {
 
         if (profileError) {
           console.warn('Erro ao atualizar perfil:', profileError);
+          // Usando "default" em vez de "warning" (que não é um tipo permitido)
           toast({
-            variant: "warning",
             title: "Aviso",
             description: "Conta criada, mas houve um problema ao definir permissões de administrador.",
           });
