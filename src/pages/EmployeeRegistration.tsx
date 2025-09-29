@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,26 +47,28 @@ const EmployeeRegistration = () => {
   const { toast } = useToast();
   const [showReportDialog, setShowReportDialog] = useState(false);
 
-  const fetchEmployees = () => {
+ const fetchEmployees = useCallback(() => {
     try {
-      const storedEmployees = JSON.parse(localStorage.getItem('tempEmployees') || '[]');
-      const sortedEmployees = storedEmployees.sort((a: Employee, b: Employee) => 
+      const storedEmployees = JSON.parse(
+        localStorage.getItem("tempEmployees") || "[]"
+      );
+      const sortedEmployees = storedEmployees.sort((a: Employee, b: Employee) =>
         a.name.localeCompare(b.name)
       );
       setEmployees(sortedEmployees);
-    } catch (error: any) {
-      console.error('Erro ao carregar colaboradores:', error);
+    } catch (error: unknown) {
+      console.error("Erro ao carregar colaboradores:", error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar colaboradores",
-        description: error.message
+        description: error instanceof Error ? error.message : String(error),
       });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value.toLowerCase());

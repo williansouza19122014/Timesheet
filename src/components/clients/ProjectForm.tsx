@@ -1,14 +1,16 @@
-
-import { useState } from "react";
-import { Project } from "@/types/clients";
-import { useToast } from "@/hooks/use-toast";
+import { useState, type FormEvent } from "react";
 import { Calendar } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Project } from "@/types/clients";
 
 interface ProjectFormProps {
   onSubmit: (project: Project) => void;
   onCancel: () => void;
   editingProject?: Project;
 }
+
+const inputBaseClasses =
+  "w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30";
 
 const ProjectForm = ({ onSubmit, onCancel, editingProject }: ProjectFormProps) => {
   const [project, setProject] = useState<Partial<Project>>(editingProject || {
@@ -19,14 +21,14 @@ const ProjectForm = ({ onSubmit, onCancel, editingProject }: ProjectFormProps) =
   });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (!project.name) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nome do projeto é obrigatório"
+        description: "Nome do projeto � obrigatório",
       });
       return;
     }
@@ -44,76 +46,82 @@ const ProjectForm = ({ onSubmit, onCancel, editingProject }: ProjectFormProps) =
 
     onSubmit(newProject);
     toast({
-      title: `Projeto ${editingProject ? 'atualizado' : 'adicionado'}`,
-      description: `${newProject.name} foi ${editingProject ? 'atualizado' : 'adicionado'} com sucesso`
+      title: `Projeto ${editingProject ? "atualizado" : "adicionado"}`,
+      description: `${newProject.name} foi ${editingProject ? "atualizado" : "adicionado"} com sucesso`,
     });
   };
 
   return (
-    <div className="border rounded-lg p-4 mb-4">
-      <h3 className="text-lg font-medium mb-4">{editingProject ? 'Editar Projeto' : 'Novo Projeto'}</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Nome do Projeto *</label>
-          <input
-            value={project.name}
-            onChange={(e) => setProject({ ...project, name: e.target.value })}
-            required
-            className="w-full p-2 border rounded-lg"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Data de Início</label>
+    <section className="rounded-3xl border border-slate-200/80 bg-white/85 p-6 shadow-md backdrop-blur">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-xl font-semibold text-slate-900">
+          {editingProject ? "Editar Projeto" : "Novo Projeto"}
+        </h3>
+        <p className="text-sm text-slate-500">Preencha os detalhes essenciais do projeto.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <label className="block text-sm font-medium text-slate-600">Nome do Projeto *</label>
+            <input
+              value={project.name ?? ""}
+              onChange={(event) => setProject({ ...project, name: event.target.value })}
+              required
+              className={inputBaseClasses}
+              placeholder="Ex: Implantação ERP"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-600">Data de Início</label>
             <div className="relative">
               <input
                 type="date"
-                value={project.startDate}
-                onChange={(e) => setProject({ ...project, startDate: e.target.value })}
-                className="w-full p-2 border rounded-lg"
+                value={project.startDate ?? ""}
+                onChange={(event) => setProject({ ...project, startDate: event.target.value })}
+                className={`${inputBaseClasses} pr-12`}
               />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              <Calendar className="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-slate-400" />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Data de Fim</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-600">Data de Fim</label>
             <div className="relative">
               <input
                 type="date"
-                value={project.endDate}
-                onChange={(e) => setProject({ ...project, endDate: e.target.value })}
-                className="w-full p-2 border rounded-lg"
+                value={project.endDate ?? ""}
+                onChange={(event) => setProject({ ...project, endDate: event.target.value })}
+                className={`${inputBaseClasses} pr-12`}
               />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              <Calendar className="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-slate-400" />
             </div>
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Descrição</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-600">Descrição</label>
           <textarea
-            value={project.description}
-            onChange={(e) => setProject({ ...project, description: e.target.value })}
-            className="w-full p-2 border rounded-lg"
-            rows={3}
+            value={project.description ?? ""}
+            onChange={(event) => setProject({ ...project, description: event.target.value })}
+            className={`${inputBaseClasses} min-h-[120px]`}
+            placeholder="Descreva o escopo e principais entregas do projeto"
           />
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-accent/90"
           >
-            {editingProject ? 'Atualizar' : 'Salvar'}
+            {editingProject ? "Atualizar" : "Salvar"}
           </button>
         </div>
       </form>
-    </div>
+    </section>
   );
 };
 

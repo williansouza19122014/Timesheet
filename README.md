@@ -1,69 +1,51 @@
-# Welcome to your Lovable project
+🕒 Timesheet App
 
-## Project info
+Aplicação de gerenciamento de clientes, projetos, equipes e usuários, construída em React + TypeScript + Supabase.
+O objetivo é oferecer uma solução simples e eficiente para controle de alocação de pessoas, acompanhamento de tarefas e gestão de times.
 
-**URL**: https://lovable.dev/projects/d881f81b-60e4-47b0-bad0-bcd7effdcc08
+🚀 Tecnologias Utilizadas
 
-## How can I edit this code?
+React + TypeScript
+Vite para build rápido e leve
+Supabase como backend (autenticação e banco de dados)
+TailwindCSS para estilização
+Lucide Icons para ícones
+Shadcn/UI para componentes reutilizáveis
 
-There are several ways of editing your application.
+📂 Estrutura do Projeto
+src/
+ ├─ components/     # Componentes reutilizáveis (UI, formulários, cards, etc.)
+ ├─ pages/          # Páginas principais (Clients, Users, EmployeeRegistration...)
+ ├─ hooks/          # Hooks customizados
+ ├─ lib/            # Configurações externas (ex: Supabase)
+ ├─ types/          # Tipagens TypeScript (Client, Project, User, etc.)
+ └─ App.tsx         # Definição de rotas
 
-**Use Lovable**
+⚙️ Funcionalidades
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d881f81b-60e4-47b0-bad0-bcd7effdcc08) and start prompting.
+📌 Cadastro e gerenciamento de clientes
+📌 Projetos vinculados a clientes
+📌 Controle de membros da equipe (ativos e desligados)
+📌 Gestão de colaboradores com dados completos
+📌 Usuários do sistema com permissões
 
-Changes made via Lovable will be committed automatically to this repo.
+📊 Dashboard com métricas de clientes, projetos e membros ativos
 
-**Use your preferred IDE**
+▶️ Como Rodar o Projeto
+1. Clonar o repositório
+git clone https://github.com/seu-usuario/timesheet.git
+cd timesheet
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. Instalar dependências
+npm install
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Rodar o servidor de desenvolvimento
 npm run dev
-```
 
-**Edit a file directly in GitHub**
+📖 Próximos Passos
+🔒 Autenticação de usuários
+📅 Relatórios e exportação de dados
+⚡ Otimização de performance
+📜 Licença
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/d881f81b-60e4-47b0-bad0-bcd7effdcc08) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Este projeto está sob a licença MIT.
