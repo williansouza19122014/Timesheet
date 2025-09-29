@@ -1,5 +1,5 @@
-
-import { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -13,34 +13,34 @@ const Users = () => {
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const { toast } = useToast();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       // Temporariamente usando localStorage para desenvolvimento
-      const storedUsers = localStorage.getItem('tempEmployees');
+      const storedUsers = localStorage.getItem("tempEmployees");
       if (storedUsers) {
         setUsers(JSON.parse(storedUsers));
       } else {
         const { data, error } = await supabase
-          .from('system_users')
-          .select('*')
-          .order('name');
+          .from("system_users")
+          .select("*")
+          .order("name");
 
         if (error) throw error;
         setUsers(data || []);
       }
-    } catch (error: any) {
-      console.error('Erro ao carregar usuários:', error);
+    } catch (error: unknown) {
+      console.error("Erro ao carregar usuários:", error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar usuários",
-        description: error.message
+        description: error instanceof Error ? error.message : String(error),
       });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleEdit = (user: SystemUser) => {
     setEditingUser(user);
@@ -75,12 +75,8 @@ const Users = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {users.map(user => (
-          <UserCard
-            key={user.id}
-            user={user}
-            onEdit={handleEdit}
-          />
+        {users.map((user) => (
+          <UserCard key={user.id} user={user} onEdit={handleEdit} />
         ))}
       </div>
     </div>

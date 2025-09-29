@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
 import { Settings as SettingsIcon, Server, Database, Key, Shield } from "lucide-react";

@@ -1,10 +1,9 @@
-
 import { useState } from "react";
-import { Project, TeamMember } from "@/types/clients";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Project } from "@/types/clients";
 
 interface ProjectCardProps {
   project: Project;
@@ -17,133 +16,159 @@ const ProjectCard = ({
   project,
   showTeamForm,
   onShowTeamForm,
-  onEditTeamMember
+  onEditTeamMember,
 }: ProjectCardProps) => {
-  const [showCurrentTeam, setShowCurrentTeam] = useState(false);
+  const [showCurrentTeam, setShowCurrentTeam] = useState(true);
   const [showPreviousMembers, setShowPreviousMembers] = useState(false);
 
-  const activeMembers = project.team.filter(member => !member.endDate);
+  const activeMembers = project.team.filter((member) => !member.endDate);
   const inactiveMembers = [
-    ...(project.team.filter(member => member.endDate) || []),
-    ...(project.previousMembers || [])
+    ...(project.team.filter((member) => member.endDate) || []),
+    ...(project.previousMembers || []),
   ];
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="p-4">
-        <div className="space-y-2">
-          <h4 className="font-medium">{project.name}</h4>
-          <p className="text-sm text-muted-foreground">{project.description}</p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className={`px-2 py-0.5 rounded-full ${
-              !project.endDate 
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-700"
-            }`}>
-              Status: {!project.endDate ? "Ativo" : "Inativo"}
-            </span>
-            <span>|</span>
-            <span>
-              Data de Início: {project.startDate ? format(new Date(project.startDate), 'dd/MM/yyyy', { locale: ptBR }) : "___/___/_____"}
-            </span>
-            <span>|</span>
-            <span>
-              Data de Fim: {project.endDate ? format(new Date(project.endDate), 'dd/MM/yyyy', { locale: ptBR }) : "___/___/_____"}
-            </span>
+    <section className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/75 shadow-sm transition hover:border-accent/30 hover:shadow-md">
+      <div className="space-y-4 border-b border-slate-100 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h4 className="text-xl font-semibold text-slate-900">{project.name}</h4>
+            {project.description && (
+              <p className="mt-1 text-sm text-slate-600">{project.description}</p>
+            )}
           </div>
+          <Badge
+            variant="outline"
+            className={!project.endDate ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-600"}
+          >
+            {!project.endDate ? "Em andamento" : "Concluído"}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
+          <span>
+            Início: {project.startDate
+              ? format(new Date(project.startDate), "dd/MM/yyyy", { locale: ptBR })
+              : "Não informado"}
+          </span>
+          <span className="h-1 w-1 rounded-full bg-slate-300" />
+          <span>
+            Fim: {project.endDate
+              ? format(new Date(project.endDate), "dd/MM/yyyy", { locale: ptBR })
+              : "Em aberto"}
+          </span>
           {project.leader && (
-            <p className="text-sm">
-              Líder: <span className="font-medium">{project.leader.name}</span>
-            </p>
+            <>
+              <span className="h-1 w-1 rounded-full bg-slate-300" />
+              <span>
+                Líder: <span className="font-semibold text-slate-700">{project.leader.name}</span>
+              </span>
+            </>
           )}
         </div>
       </div>
 
       <button
+        type="button"
         onClick={onShowTeamForm}
-        className="w-full flex items-center justify-between p-4 border-t hover:bg-gray-50 transition-colors"
+        className="flex w-full items-center justify-between gap-2 px-6 py-4 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
       >
-        <span className="font-medium">Visualizar Equipe</span>
-        {showTeamForm ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        <span>Visualizar equipe</span>
+        {showTeamForm ? <ChevronUp className="h-5 w-5 text-accent" /> : <ChevronDown className="h-5 w-5 text-accent" />}
       </button>
 
       {showTeamForm && (
-        <div className="border-t p-4">
-          <div className="space-y-4">
-            <div>
-              <button
-                onClick={() => setShowCurrentTeam(!showCurrentTeam)}
-                className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <span className="font-medium">Equipe Atual ({activeMembers.length})</span>
-                {showCurrentTeam ? <ChevronUp /> : <ChevronDown />}
-              </button>
-              {showCurrentTeam && (
-                <div className="mt-4 space-y-4">
-                  {activeMembers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum membro ativo na equipe</p>
-                  ) : (
-                    activeMembers.map(member => (
-                      <div key={member.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                        <div>
-                          <h4 className="font-medium">{member.name}</h4>
-                          <p className="text-sm text-muted-foreground">{member.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Função: {member.role}
-                            {member.isLeader && (
-                              <Badge className="ml-2" variant="secondary">Líder</Badge>
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-sm text-right text-muted-foreground">
-                          <p>Início: {format(new Date(member.startDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-
-            {inactiveMembers.length > 0 && (
-              <div>
-                <button
-                  onClick={() => setShowPreviousMembers(!showPreviousMembers)}
-                  className="w-full flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <span className="font-medium">Membros Anteriores ({inactiveMembers.length})</span>
-                  {showPreviousMembers ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showPreviousMembers && (
-                  <div className="mt-4 space-y-4">
-                    {inactiveMembers.map(member => (
-                      <div key={member.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                        <div>
-                          <h4 className="font-medium">{member.name}</h4>
-                          <p className="text-sm text-muted-foreground">{member.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Função: {member.role}
-                            {member.isLeader && (
-                              <Badge className="ml-2" variant="secondary">Líder</Badge>
-                            )}
-                          </p>
-                        </div>
-                        <div className="text-sm text-right text-muted-foreground">
-                          <p>Início: {format(new Date(member.startDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
-                          {member.endDate && (
-                            <p>Fim: {format(new Date(member.endDate), 'dd/MM/yyyy', { locale: ptBR })}</p>
+        <div className="space-y-6 border-t border-slate-100 bg-slate-50/70 px-6 py-6">
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowCurrentTeam((prev) => !prev)}
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-accent/40 hover:bg-slate-50"
+            >
+              <span>Equipe Atual ({activeMembers.length})</span>
+              {showCurrentTeam ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            {showCurrentTeam && (
+              <div className="mt-4 grid gap-4">
+                {activeMembers.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-white/80 p-4 text-sm text-slate-500">
+                    Nenhum membro ativo na equipe.
+                  </div>
+                ) : (
+                  activeMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-900">{member.name}</p>
+                        <p className="text-xs text-slate-500">{member.email}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                            {member.role}
+                          </span>
+                          {member.isLeader && (
+                            <Badge variant="secondary" className="bg-accent/10 text-accent">
+                              Líder
+                            </Badge>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="text-sm text-slate-500">
+                        <p>Início: {format(new Date(member.startDate), "dd/MM/yyyy", { locale: ptBR })}</p>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             )}
           </div>
+
+          {inactiveMembers.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowPreviousMembers((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-accent/40 hover:bg-slate-50"
+              >
+                <span>Membros Anteriores ({inactiveMembers.length})</span>
+                {showPreviousMembers ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {showPreviousMembers && (
+                <div className="mt-4 grid gap-4">
+                  {inactiveMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-900">{member.name}</p>
+                        <p className="text-xs text-slate-500">{member.email}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                            {member.role}
+                          </span>
+                          {member.isLeader && (
+                            <Badge variant="secondary" className="bg-accent/10 text-accent">
+                              Líder
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        <p>Início: {format(new Date(member.startDate), "dd/MM/yyyy", { locale: ptBR })}</p>
+                        {member.endDate && (
+                          <p>Fim: {format(new Date(member.endDate), "dd/MM/yyyy", { locale: ptBR })}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </section>
   );
 };
 
