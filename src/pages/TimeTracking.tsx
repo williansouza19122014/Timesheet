@@ -14,7 +14,7 @@ const TimeTracking = () => {
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   
-  const { entries, handleRegisterTime } = useTimeEntries(selectedMonth);
+  const { entries, handleRegisterTime, handleAllocateProject } = useTimeEntries(selectedMonth);
   const { clients } = useClients();
 
   const getDaysInCurrentMonth = () => {
@@ -57,6 +57,7 @@ const TimeTracking = () => {
         diasSemana={diasSemana}
         formatDate={formatDate}
         clients={clients}
+        onAllocateProject={handleAllocateProject}
       />
 
       <RequestTimeCorrection

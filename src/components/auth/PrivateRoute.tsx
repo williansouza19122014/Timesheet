@@ -1,70 +1,33 @@
-
-import { useEffect, useState } from "react";
-import { Navigate, useLocation, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { useAccessControl } from "@/context/access-control-context";
 
 const PrivateRoute = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasPermission, setHasPermission] = useState(true);
   const location = useLocation();
+  const { user, loading, isAuthenticated } = useAuth();
+  const { canAccess, features } = useAccessControl();
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return;
-      }
-
-      // Verifica permissão baseado na rota atual
-      const path = location.pathname.substring(1) || 'dashboard';
-      const permissionCode = `${path}_access`;
-
-      const { data, error } = await supabase.rpc('has_permission', {
-        permission_code: permissionCode
-      });
-
-      if (error) throw error;
-
-      setHasPermission(data);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!hasPermission) {
+  const feature = features.find((item) => item.path === location.pathname);
+  if (feature && !canAccess(feature.key)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-destructive">Acesso Negado</h1>
-          <p className="text-muted-foreground">
-            Você não tem permissão para acessar esta página.
-            <br />
-            Entre em contato com um administrador.
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="space-y-4 text-center">
+          <h1 className="text-2xl font-semibold text-destructive">Acesso negado</h1>
+          <p className="text-sm text-muted-foreground">
+            Peça a um administrador para revisar suas permissões.
           </p>
         </div>
       </div>

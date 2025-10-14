@@ -23,7 +23,11 @@ const ApprovalRequests = () => {
   const { toast } = useToast();
 
   const handleApprove = (request: TimeCorrection) => {
-    // TODO: Implementar lógica de aprovação
+    setRequests((prevRequests) =>
+      prevRequests.map((item) =>
+        item.id === request.id ? { ...item, status: "approved" } : item
+      )
+    );
     toast({
       title: "Solicitação aprovada",
       description: `A solicitação de ${request.userName} foi aprovada`
@@ -31,7 +35,11 @@ const ApprovalRequests = () => {
   };
 
   const handleReject = (request: TimeCorrection) => {
-    // TODO: Implementar lógica de rejeição
+    setRequests((prevRequests) =>
+      prevRequests.map((item) =>
+        item.id === request.id ? { ...item, status: "rejected" } : item
+      )
+    );
     toast({
       variant: "destructive",
       title: "Solicitação rejeitada",

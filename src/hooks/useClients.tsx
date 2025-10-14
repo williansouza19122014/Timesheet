@@ -1,52 +1,48 @@
-
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Client } from "@/types/clients";
+import { apiFetch } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 
-interface Client {
-  id: string;
-  name: string;
-  projects: Project[];
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-}
+type ClientResponse = Client & { projects?: unknown[] };
 
 export const useClients = () => {
-  const [clients, setClients] = useState<Client[]>([]);
   const { toast } = useToast();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const { data: clientsData, error: clientsError } = await supabase
-          .from('clients')
-          .select(`
-            *,
-            projects (
-              id,
-              name,
-              description
-            )
-          `);
-
-        if (clientsError) throw clientsError;
-        setClients(clientsData || []);
-      } catch (error: any) {
-        console.error('Erro ao carregar clientes:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar clientes",
-          description: error.message
-        });
-      }
-    };
-
-    fetchClients();
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch<ClientResponse[]>("/api/clients");
+      setClients(
+        (data ?? []).map((client) => ({
+          id: client.id,
+          name: client.name,
+          cnpj: client.cnpj,
+          startDate: client.startDate,
+          endDate: client.endDate,
+          projects: client.projects ?? [],
+        }))
+      );
+    } catch (error) {
+      console.error("Erro ao carregar clientes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar clientes",
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [toast]);
 
-  return { clients };
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  return {
+    clients,
+    loading,
+    refresh: fetchClients,
+  };
 };

@@ -15,7 +15,7 @@ const Vacations = () => {
 
   useEffect(() => {
     loadVacationData();
-  }, []);
+  }, [loadVacationData]);
 
   if (isLoading) {
     return <div>Carregando...</div>;
@@ -32,7 +32,7 @@ const Vacations = () => {
 
       <ExpiringPeriodsAlert periods={periods} isPJ={isPJ} />
 
-      <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <PeriodsTable periods={periods} isPJ={isPJ} />
         <RequestsTable requests={requests} isPJ={isPJ} />
       </div>

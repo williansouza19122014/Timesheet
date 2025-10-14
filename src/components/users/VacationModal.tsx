@@ -1,19 +1,22 @@
-
-import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { useCallback, useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import VacationPeriods from "./VacationPeriods";
 import VacationRequests from "./VacationRequests";
 import NewVacationRequest from "./NewVacationRequest";
 import VacationContractInfo from "./VacationContractInfo";
 import { SystemUser } from "@/types/users";
+import {
+  ensureVacationData,
+  createDefaultVacationEntry,
+} from "@/utils/vacation-storage";
+import { VacationPeriod } from "@/types/vacations";
 
 interface VacationModalProps {
   user: SystemUser;
@@ -21,47 +24,35 @@ interface VacationModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface VacationPeriod {
-  id: string;
-  start_date: string;
-  end_date: string;
-  days_available: number;
-  limit_date: string | null;
-  contract_type: string;
-}
-
 const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
   const [periods, setPeriods] = useState<VacationPeriod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open) {
-      loadVacationPeriods();
+  const loadVacationPeriods = useCallback(() => {
+    if (!open) {
+      return;
     }
-  }, [open]);
 
-  const loadVacationPeriods = async () => {
     try {
-      const { data, error } = await supabase
-        .from('vacation_periods')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('start_date', { ascending: false });
-
-      if (error) throw error;
-      setPeriods(data || []);
-    } catch (error: any) {
-      console.error('Erro ao carregar períodos:', error);
+      setIsLoading(true);
+      const entry = ensureVacationData(user.id, () => createDefaultVacationEntry(user.id));
+      setPeriods(entry.periods);
+    } catch (error) {
+      console.error("Erro ao carregar períodos aquisitivos:", error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar períodos aquisitivos",
-        description: error.message
+        description: error instanceof Error ? error.message : String(error),
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [open, toast, user.id]);
+
+  useEffect(() => {
+    loadVacationPeriods();
+  }, [loadVacationPeriods]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,10 +61,10 @@ const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
           <DialogTitle>Gestão de Férias - {user.name}</DialogTitle>
         </DialogHeader>
 
-        <VacationContractInfo contractType={user.contract_type || 'CLT'} />
+        <VacationContractInfo contractType={user.contract_type || "CLT"} />
 
         <Tabs defaultValue="periods" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 gap-2">
             <TabsTrigger value="periods">Períodos Aquisitivos</TabsTrigger>
             <TabsTrigger value="requests">Solicitações</TabsTrigger>
             <TabsTrigger value="new" disabled={periods.length === 0}>
@@ -82,10 +73,7 @@ const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
           </TabsList>
 
           <TabsContent value="periods">
-            <VacationPeriods 
-              periods={periods}
-              isLoading={isLoading}
-            />
+            <VacationPeriods periods={periods} isLoading={isLoading} />
           </TabsContent>
 
           <TabsContent value="requests">
@@ -100,10 +88,10 @@ const VacationModal = ({ user, open, onOpenChange }: VacationModalProps) => {
                 loadVacationPeriods();
                 toast({
                   title: "Solicitação enviada",
-                  description: "Sua solicitação de férias foi enviada para aprovação"
+                  description: "Sua solicitação de férias foi enviada para aprovação",
                 });
               }}
-              contractType={user.contract_type || 'CLT'}
+              contractType={user.contract_type || "CLT"}
             />
           </TabsContent>
         </Tabs>
