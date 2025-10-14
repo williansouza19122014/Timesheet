@@ -18,20 +18,30 @@ export interface TimeCorrection {
   document?: string;
 }
 
+export type KanbanFrontendStatus =
+  | "requested"
+  | "inAnalysis"
+  | "needsCorrection"
+  | "approved";
+
 export interface KanbanCard {
   id: string;
   title: string;
-  description: string;
-  status: "requested" | "inAnalysis" | "needsCorrection" | "approved";
+  description?: string;
+  status: KanbanFrontendStatus;
   date: Date;
-  requesterId: string;
-  requesterName: string;
+  requesterId?: string;
+  requesterName?: string;
+  priority?: "low" | "medium" | "high";
+  tags?: string[];
+  dueDate?: string;
+  columnId?: string;
   timeCorrection: TimeCorrection;
   chat?: ChatMessage[];
 }
 
 export interface KanbanColumn {
-  id: "requested" | "inAnalysis" | "needsCorrection" | "approved";
+  id: KanbanFrontendStatus;
   title: string;
   cards: KanbanCard[];
 }

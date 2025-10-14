@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 
 // Import das páginas
 import Layout from "./components/Layout";
+import PrivateRoute from "./components/auth/PrivateRoute";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -29,20 +30,22 @@ function App() {
       <Route path="/register" element={<Register />} />
 
       {/* Rotas protegidas dentro do Layout */}
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Index />} />
-        <Route path="perfil" element={<Profile />} />
-        <Route path="approval-requests" element={<ApprovalRequests />} />
-        <Route path="clientes" element={<Clients />} />
-        <Route path="cadastro-colaborador" element={<EmployeeRegistration />} />
-        <Route path="kanban" element={<Kanban />} />
-        <Route path="relatorios" element={<Reports />} />
-        <Route path="configuracoes" element={<Settings />} />
-        <Route path="team" element={<Team />} />
-        <Route path="ponto" element={<TimeSheet />} />
-        <Route path="timetracking" element={<TimeTracking />} />
-        <Route path="users" element={<Users />} />
-        <Route path="ferias" element={<Vacations />} />
+      <Route element={<PrivateRoute />}>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Index />} />
+          <Route path="perfil" element={<Profile />} />
+          <Route path="approval-requests" element={<ApprovalRequests />} />
+          <Route path="clientes" element={<Clients />} />
+          <Route path="cadastro-colaborador" element={<EmployeeRegistration />} />
+          <Route path="kanban" element={<Kanban />} />
+          <Route path="relatorios" element={<Reports />} />
+          <Route path="configuracoes" element={<Settings />} />
+          <Route path="team" element={<Team />} />
+          <Route path="ponto" element={<TimeSheet />} />
+          <Route path="timetracking" element={<TimeTracking />} />
+          <Route path="users" element={<Users />} />
+          <Route path="ferias" element={<Vacations />} />
+        </Route>
       </Route>
 
       {/* Rota para páginas inexistentes */}

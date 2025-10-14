@@ -1,56 +1,50 @@
-
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 import { VacationPeriod, VacationRequest } from "@/types/vacations";
+import {
+  ensureVacationData,
+  createDefaultVacationEntry,
+} from "@/utils/vacation-storage";
 
 export const useVacations = () => {
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [periods, setPeriods] = useState<VacationPeriod[]>([]);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
-  const loadVacationData = async () => {
+  const loadVacationData = useCallback(async () => {
+    const userId = user?.id;
+
+    if (!userId) {
+      setPeriods([]);
+      setRequests([]);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { data: userData } = await supabase.auth.getUser();
-      
-      if (!userData.user) return;
-
-      const [periodsResponse, requestsResponse] = await Promise.all([
-        supabase
-          .from('vacation_periods')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .order('start_date', { ascending: false }),
-        supabase
-          .from('vacation_requests')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .order('created_at', { ascending: false })
-      ]);
-
-      if (periodsResponse.error) throw periodsResponse.error;
-      if (requestsResponse.error) throw requestsResponse.error;
-
-      setPeriods(periodsResponse.data || []);
-      setRequests(requestsResponse.data || []);
-    } catch (error: any) {
-      console.error('Erro ao carregar dados de férias:', error);
+      const entry = ensureVacationData(userId, () => createDefaultVacationEntry(userId));
+      setPeriods(entry.periods);
+      setRequests(entry.requests);
+    } catch (error) {
+      console.error("Erro ao carregar dados de férias:", error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar dados",
-        description: error.message
+        description: error instanceof Error ? error.message : String(error),
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, user?.id]);
 
   return {
     periods,
     requests,
     isLoading,
-    loadVacationData
+    loadVacationData,
   };
 };

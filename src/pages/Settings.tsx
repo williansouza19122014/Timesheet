@@ -1,294 +1,274 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { useState, useEffect } from "react";
-import { Settings as SettingsIcon, Server, Database, Key, Shield } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useMemo, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useAccessControl,
+  ROLE_LABELS,
+  ACCESS_ROLES,
+  type FeatureDefinition,
+  type FeatureKey,
+  type Role,
+} from "@/context/access-control-context";
+import { cn } from "@/lib/utils";
 
-interface Permission {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-}
-
-interface RolePermission {
-  id: string;
-  role: 'admin' | 'user';
-  permission_id: string;
-  enabled: boolean;
-}
+type PreferenceKey = "weeklySummary" | "desktopReminders" | "notifyApprovals";
 
 const Settings = () => {
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error' | 'not-configured'>('checking');
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
-  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
   const { toast } = useToast();
+  const {
+    features,
+    roles,
+    setFeatureAccess,
+    isFeatureEnabled,
+    activeRole,
+    setActiveRole,
+    resetToDefault,
+  } = useAccessControl();
 
-  useEffect(() => {
-    checkConnection();
-    fetchUserRole();
-    fetchPermissions();
-    fetchRolePermissions();
-  }, []);
+  const [preferences, setPreferences] = useState({
+    weeklySummary: true,
+    desktopReminders: false,
+    notifyApprovals: true,
+  });
 
-  const checkConnection = async () => {
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-      console.log('Supabase not configured');
-      setConnectionStatus('not-configured');
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setConnectionStatus('connected');
-      } else {
-        setConnectionStatus('error');
+  const groupedFeatures = useMemo(() => {
+    return features.reduce<Record<string, FeatureDefinition[]>>((groups, feature) => {
+      const groupName = feature.group;
+      if (!groups[groupName]) {
+        groups[groupName] = [];
       }
-    } catch (error) {
-      console.error('Connection error:', error);
-      setConnectionStatus('error');
-    }
-  };
+      groups[groupName].push(feature);
+      return groups;
+    }, {});
+  }, [features]);
 
-  const fetchUserRole = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        setUserRole(profile.role);
-      }
-    } catch (error) {
-      console.error('Error fetching user role:', error);
-    }
-  };
-
-  const fetchPermissions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      setPermissions(data);
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-    }
-  };
-
-  const fetchRolePermissions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('role_permissions')
-        .select('*');
-      
-      if (error) throw error;
-      setRolePermissions(data);
-    } catch (error) {
-      console.error('Error fetching role permissions:', error);
-    }
-  };
-
-  const togglePermission = async (permissionId: string, role: 'admin' | 'user', currentEnabled: boolean) => {
-    try {
-      const { data: rolePermission, error } = await supabase
-        .from('role_permissions')
-        .update({ enabled: !currentEnabled })
-        .eq('permission_id', permissionId)
-        .eq('role', role)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setRolePermissions(prev => 
-        prev.map(rp => 
-          rp.permission_id === permissionId && rp.role === role
-            ? { ...rp, enabled: !currentEnabled }
-            : rp
-        )
-      );
-
-      toast({
-        title: "Permissão atualizada",
-        description: `A permissão foi ${!currentEnabled ? 'ativada' : 'desativada'} com sucesso.`,
-      });
-    } catch (error) {
-      console.error('Error toggling permission:', error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao atualizar permissão",
-        description: "Ocorreu um erro ao tentar atualizar a permissão.",
-      });
-    }
-  };
-
-  const SystemCard = ({ icon: Icon, title, status, description }: {
-    icon: any;
-    title: string;
-    status: string;
-    description: string;
-  }) => (
-    <div className="bg-white p-6 rounded-xl shadow-sm border">
-      <div className="flex items-start gap-4">
-        <div className="p-2 bg-accent/10 rounded-lg">
-          <Icon className="w-6 h-6 text-accent" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-medium">{title}</h3>
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              status === 'Connected' 
-                ? 'bg-success/10 text-success' 
-                : status === 'Checking...'
-                ? 'bg-accent/10 text-accent'
-                : status === 'Not Configured'
-                ? 'bg-accent/10 text-accent'
-                : 'bg-destructive/10 text-destructive'
-            }`}>
-              {status}
-            </span>
-          </div>
-          <p className="text-sm text-secondary">
-            {connectionStatus === 'not-configured' && title === 'Supabase Connection'
-              ? "Please connect Supabase using the Lovable interface"
-              : description}
-          </p>
-        </div>
-      </div>
-    </div>
+  const featureMap = useMemo(
+    () => new Map(features.map((feature) => [feature.key, feature])),
+    [features]
   );
 
-  const PermissionsSection = () => {
-    if (userRole !== 'admin') {
-      return (
-        <div className="bg-destructive/10 text-destructive p-4 rounded-lg mt-6">
-          Você precisa ser administrador para gerenciar permissões.
-        </div>
-      );
-    }
+  const handleAccessChange = (role: Role, feature: FeatureKey, enabled: boolean) => {
+    setFeatureAccess(role, feature, enabled);
+    const featureInfo = featureMap.get(feature);
+    toast({
+      title: "Permissão atualizada",
+      description: `${ROLE_LABELS[role]} ${enabled ? "agora pode" : "não pode"} acessar ${
+        featureInfo?.label ?? feature
+      }.`,
+    });
+  };
 
-    return (
-      <div className="mt-6 space-y-6">
-        <div className="grid gap-6">
-          {permissions.map(permission => (
-            <div key={permission.id} className="bg-white p-6 rounded-xl shadow-sm border">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium">{permission.name}</h4>
-                  <p className="text-sm text-muted-foreground">{permission.description}</p>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Administrador</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Permissão para administradores
-                      </p>
-                    </div>
-                    <Switch
-                      checked={rolePermissions.find(
-                        rp => rp.permission_id === permission.id && rp.role === 'admin'
-                      )?.enabled || false}
-                      onCheckedChange={(checked) => {
-                        const currentRolePermission = rolePermissions.find(
-                          rp => rp.permission_id === permission.id && rp.role === 'admin'
-                        );
-                        if (currentRolePermission) {
-                          togglePermission(permission.id, 'admin', currentRolePermission.enabled);
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Usuário</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Permissão para usuários comuns
-                      </p>
-                    </div>
-                    <Switch
-                      checked={rolePermissions.find(
-                        rp => rp.permission_id === permission.id && rp.role === 'user'
-                      )?.enabled || false}
-                      onCheckedChange={(checked) => {
-                        const currentRolePermission = rolePermissions.find(
-                          rp => rp.permission_id === permission.id && rp.role === 'user'
-                        );
-                        if (currentRolePermission) {
-                          togglePermission(permission.id, 'user', currentRolePermission.enabled);
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  const handlePreferenceChange = (key: PreferenceKey) => (checked: boolean) => {
+    setPreferences((previous) => ({ ...previous, [key]: checked }));
+    toast({
+      title: "Preferência atualizada",
+      description: checked ? "Configuração ativada com sucesso." : "Configuração desativada.",
+    });
   };
 
   return (
-    <div className="animate-fade-in">
-      <h1 className="text-4xl font-bold mb-8">Configurações</h1>
+    <div className="animate-fade-in space-y-10 pb-12">
+      <header className="space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Configurações
+        </h1>
+        <p className="text-sm text-muted-foreground dark:text-slate-400">
+          Personalize a experiência do Timesheet e defina quais funcionalidades cada perfil pode acessar.
+        </p>
+      </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <SystemCard
-          icon={Server}
-          title="Conexão Supabase"
-          status={
-            connectionStatus === 'checking' 
-              ? 'Verificando...' 
-              : connectionStatus === 'connected'
-              ? 'Conectado'
-              : connectionStatus === 'not-configured'
-              ? 'Não Configurado'
-              : 'Erro'
-          }
-          description="Status da conexão com os serviços backend do Supabase"
-        />
+      <AccessControlSection
+        groups={groupedFeatures}
+        roles={roles}
+        activeRole={activeRole}
+        onRoleChange={setActiveRole}
+        onToggle={handleAccessChange}
+        onReset={resetToDefault}
+        isFeatureEnabled={isFeatureEnabled}
+      />
 
-        <SystemCard
-          icon={Database}
-          title="Status do Banco"
-          status={connectionStatus === 'connected' ? 'Conectado' : 'Indisponível'}
-          description="Status da conexão com o banco de dados PostgreSQL"
-        />
-
-        <SystemCard
-          icon={Key}
-          title="Autenticação"
-          status={connectionStatus === 'connected' ? 'Ativo' : 'Indisponível'}
-          description="Sistema de autenticação e autorização de usuários"
-        />
-
-        <SystemCard
-          icon={Shield}
-          title="Permissões"
-          status={userRole === 'admin' ? 'Disponível' : 'Acesso Restrito'}
-          description="Gerenciamento de permissões do sistema"
-        />
-      </div>
-
-      <PermissionsSection />
+      <PreferencesSection preferences={preferences} onPreferenceChange={handlePreferenceChange} />
     </div>
   );
 };
+
+type AccessControlSectionProps = {
+  groups: Record<string, FeatureDefinition[]>;
+  roles: Role[];
+  activeRole: Role;
+  onRoleChange: (role: Role) => void;
+  onToggle: (role: Role, feature: FeatureKey, enabled: boolean) => void;
+  onReset: () => void;
+  isFeatureEnabled: (role: Role, feature: FeatureKey) => boolean;
+};
+
+const AccessControlSection = ({
+  groups,
+  roles,
+  activeRole,
+  onRoleChange,
+  onToggle,
+  onReset,
+  isFeatureEnabled,
+}: AccessControlSectionProps) => {
+  const groupEntries = Object.entries(groups);
+
+  if (groupEntries.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Controle de acesso</h2>
+          <p className="text-sm text-muted-foreground dark:text-slate-400">
+            Defina quais menus ficam visíveis para cada perfil. As alterações são aplicadas imediatamente.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Visualizar como
+            </Label>
+            <Select value={activeRole} onValueChange={(value) => onRoleChange(value as Role)}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="Perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCESS_ROLES.map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="outline" onClick={onReset}>
+            Restaurar padrão
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {groupEntries.map(([groupName, featureList]) => (
+          <div
+            key={groupName}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="border-b border-slate-200/70 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                {groupName}
+              </h3>
+            </div>
+            <div className="divide-y divide-slate-200 dark:divide-slate-800">
+              {featureList.map((feature) => {
+                const disabledForActiveRole = !isFeatureEnabled(activeRole, feature.key);
+                return (
+                  <div
+                    key={feature.key}
+                    className={cn(
+                      "grid gap-4 px-6 py-4 md:grid-cols-[minmax(0,1fr)_repeat(3,140px)]",
+                      disabledForActiveRole && "bg-muted/40 dark:bg-slate-900/50"
+                    )}
+                  >
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        {feature.label}
+                      </p>
+                      <p className="text-sm text-muted-foreground dark:text-slate-400">
+                        {feature.description}
+                      </p>
+                    </div>
+                    {roles.map((role) => (
+                      <div
+                        key={`${feature.key}-${role}`}
+                        className="flex items-center justify-end gap-3"
+                      >
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          {ROLE_LABELS[role]}
+                        </span>
+                        <Switch
+                          checked={isFeatureEnabled(role, feature.key)}
+                          onCheckedChange={(checked) => onToggle(role, feature.key, checked)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const PreferencesSection = ({
+  preferences,
+  onPreferenceChange,
+}: {
+  preferences: Record<PreferenceKey, boolean>;
+  onPreferenceChange: (key: PreferenceKey) => (checked: boolean) => void;
+}) => (
+  <section className="space-y-4">
+    <div>
+      <h2 className="text-xl font-semibold tracking-tight">Preferências</h2>
+      <p className="text-sm text-muted-foreground dark:text-slate-400">
+        Controle alertas e automações relacionadas ao registro de ponto.
+      </p>
+    </div>
+    <div className="space-y-4">
+      <PreferenceToggle
+        title="Resumo semanal por e-mail"
+        description="Receba um consolidado com as horas trabalhadas toda segunda-feira."
+        checked={preferences.weeklySummary}
+        onChange={onPreferenceChange("weeklySummary")}
+      />
+      <PreferenceToggle
+        title="Lembrete de registro no desktop"
+        description="Exibe um alerta caso nenhum ponto seja registrado até 10h."
+        checked={preferences.desktopReminders}
+        onChange={onPreferenceChange("desktopReminders")}
+      />
+      <PreferenceToggle
+        title="Notificações de aprovação"
+        description="Avise-me quando um gestor aprovar ou recusar uma solicitação."
+        checked={preferences.notifyApprovals}
+        onChange={onPreferenceChange("notifyApprovals")}
+      />
+    </div>
+  </section>
+);
+
+const PreferenceToggle = ({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) => (
+  <div className="flex items-center justify-between rounded-2xl border bg-white px-5 py-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="max-w-md">
+      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</p>
+      <p className="text-xs text-muted-foreground dark:text-slate-400">{description}</p>
+    </div>
+    <Switch checked={checked} onCheckedChange={onChange} />
+  </div>
+);
 
 export default Settings;

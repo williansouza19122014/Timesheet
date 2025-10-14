@@ -690,7 +690,7 @@ export type Database = {
     }
     Enums: {
       subscription_status: "active" | "inactive" | "pending" | "cancelled"
-      user_role: "admin" | "user"
+      user_role: "admin" | "leader" | "user"
       user_status: "active" | "inactive"
       vacation_status: "pending" | "approved" | "denied" | "cancelled"
     }

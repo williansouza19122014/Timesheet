@@ -1,41 +1,66 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
+const PASSWORD_RESET_STORAGE_KEY = "tempPasswordResets";
+
+type StoredReset = {
+  password: string;
+  updatedAt: string;
+};
+
+const readStoredResets = (): Record<string, StoredReset> => {
+  try {
+    const raw = localStorage.getItem(PASSWORD_RESET_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, StoredReset>) : {};
+  } catch (error) {
+    console.error("Erro ao acessar resets aguardados:", error);
+    return {};
+  }
+};
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
-  // Verificar se temos um token na URL
   useEffect(() => {
-    // Verificar se temos parâmetros na URL
     const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    
+    const token = params.get("token");
+
     if (!token) {
       toast({
         variant: "destructive",
         title: "Link inválido",
         description: "Este link de redefinição de senha é inválido ou expirou.",
       });
-      navigate("/login");
+      navigate("/login", { replace: true });
+      return;
     }
+
+    setResetToken(token);
   }, [location.search, navigate, toast]);
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleResetPassword = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!resetToken) {
+      toast({
+        variant: "destructive",
+        title: "Link inválido",
+        description: "O link de redefinição não é mais válido.",
+      });
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast({
         variant: "destructive",
@@ -57,26 +82,27 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      const resets = readStoredResets();
+      resets[resetToken] = {
         password: newPassword,
-      });
-
-      if (error) throw error;
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(PASSWORD_RESET_STORAGE_KEY, JSON.stringify(resets));
 
       toast({
         title: "Senha atualizada",
         description: "Sua senha foi atualizada com sucesso",
       });
 
-      // Pequeno delay para mostrar o toast antes de redirecionar
       setTimeout(() => {
         navigate("/login");
-      }, 1500);
-    } catch (error: any) {
+      }, 1000);
+    } catch (error) {
+      console.error("Erro ao atualizar senha:", error);
       toast({
         variant: "destructive",
         title: "Erro ao atualizar senha",
-        description: error.message || "Ocorreu um erro ao atualizar sua senha",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar sua senha",
       });
     } finally {
       setIsLoading(false);
@@ -84,14 +110,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-sm">
         <div className="space-y-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Redefinir Senha</h1>
-            <p className="text-muted-foreground">
-              Digite sua nova senha abaixo
-            </p>
+            <p className="text-muted-foreground">Digite sua nova senha abaixo</p>
           </div>
 
           <form onSubmit={handleResetPassword} className="space-y-4">
@@ -105,22 +129,18 @@ const ResetPassword = () => {
                   id="newPassword"
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(event) => setNewPassword(event.target.value)}
                   className="pl-10 pr-12"
-                  placeholder="••••••••"
+                  placeholder="********"
                   required
                   minLength={6}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
@@ -135,25 +155,17 @@ const ResetPassword = () => {
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
                   className="pl-10 pr-12"
-                  placeholder="••••••••"
+                  placeholder="********"
                   required
                   minLength={6}
                 />
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "Atualizar Senha"
-              )}
+            <Button type="submit" className="w-full" disabled={isLoading || !resetToken}>
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Atualizar Senha"}
             </Button>
           </form>
         </div>

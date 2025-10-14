@@ -40,35 +40,38 @@ export const KanbanCardModal = ({
     window.open(documentUrl, '_blank');
   };
 
+  const parseTime = (time?: string) => {
+    if (!time) return null;
+    const [hours, minutes] = time.split(":").map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours + minutes / 60;
+  };
+
+  const timePairs = card.timeCorrection?.times ?? [];
+  const projects = timePairs.map((time, index) => {
+    const start = parseTime(time.entrada);
+    const end = parseTime(time.saida);
+    const duration = start !== null && end !== null && end > start ? +(end - start).toFixed(2) : 0;
+    return {
+      name: `Período ${index + 1}`,
+      hours: duration,
+      details: [
+        {
+          time: `${time.entrada ?? "--:--"} - ${time.saida ?? "--:--"}`,
+          duration,
+        },
+      ],
+    };
+  });
+
+  const totalHours = projects.reduce((acc, project) => acc + project.hours, 0);
+
   const hoursData = {
-    date: new Date(card.timeCorrection.date),
-    totalHours: 6,
-    projectHours: 8,
-    difference: 2,
-    projects: [
-      {
-        name: "Projeto A",
-        hours: 4,
-        details: [
-          { time: "09:00 - 11:00", duration: 2 },
-          { time: "14:00 - 16:00", duration: 2 }
-        ]
-      },
-      {
-        name: "Projeto B",
-        hours: 2,
-        details: [
-          { time: "11:00 - 13:00", duration: 2 }
-        ]
-      },
-      {
-        name: "Projeto C",
-        hours: 2,
-        details: [
-          { time: "16:00 - 18:00", duration: 2 }
-        ]
-      }
-    ]
+    date: card.timeCorrection?.date ? new Date(card.timeCorrection.date) : new Date(),
+    totalHours,
+    projectHours: totalHours,
+    difference: 0,
+    projects,
   };
 
   const showEditOptions = card.status === "needsCorrection" && onEdit && onDelete;
@@ -107,11 +110,7 @@ export const KanbanCardModal = ({
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 p-6 border-r overflow-y-auto">
             <div className="space-y-6">
-              <KanbanHoursCard
-                hoursData={hoursData}
-                isFlipped={isFlipped}
-                onFlip={() => setIsFlipped(!isFlipped)}
-              />
+              <KanbanHoursCard hoursData={hoursData} isFlipped={isFlipped} onFlip={() => setIsFlipped(!isFlipped)} />
 
               <KanbanCardDetails
                 card={card}
