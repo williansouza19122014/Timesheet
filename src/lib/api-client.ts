@@ -2,11 +2,45 @@ const DEFAULT_HEADERS: HeadersInit = {
   "Content-Type": "application/json",
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+function normalizeBaseUrl(url: string | undefined): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+}
+
+function resolveBaseUrl(): string {
+  const envUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+  if (envUrl) {
+    return envUrl;
+  }
+
+  if (typeof window !== "undefined") {
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  return "";
+}
+
+const API_BASE_URL = resolveBaseUrl();
 
 function resolveUrl(input: RequestInfo): RequestInfo {
-  if (typeof input === "string" && input.startsWith("/")) {
-    return `${API_BASE_URL}${input}`;
+  if (typeof input === "string") {
+    if (input.startsWith("http://") || input.startsWith("https://")) {
+      return input;
+    }
+
+    if (!API_BASE_URL) {
+      throw new Error(
+        "API_BASE_URL não configurada. Defina VITE_API_BASE_URL ou configure a origem do backend."
+      );
+    }
+
+    if (input.startsWith("/")) {
+      return `${API_BASE_URL}${input}`;
+    }
+
+    return `${API_BASE_URL}/${input}`;
   }
   return input;
 }
