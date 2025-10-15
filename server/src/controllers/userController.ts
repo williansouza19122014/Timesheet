@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { z } from "zod";
 import { UserRole, UserStatus } from "../models/User";
 import { userService } from "../services/userService";
@@ -156,48 +156,70 @@ const paramsSchema = z.object({
   id: z.string().min(1),
 });
 
+const assignRoleSchema = z.object({
+  roleId: z.string().trim().min(1).optional().nullable(),
+});
+
+const ensureTenant = (req: AuthenticatedRequest) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new HttpException(403, "Tenant context missing");
+  }
+  return tenantId;
+};
+
 export const userController = {
   async me(req: AuthenticatedRequest, res: Response) {
     const userId = req.userId;
     if (!userId) {
       throw new HttpException(401, "Unauthorized");
     }
-    const user = await userService.getUserById(userId);
+    const tenantId = ensureTenant(req);
+    const user = await userService.getUserById(tenantId, userId);
     return res.json(user);
   },
 
-  async list(req: Request, res: Response) {
+  async list(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const filters = listQuerySchema.parse(req.query);
-    const users = await userService.listUsers(filters);
+    const users = await userService.listUsers(tenantId, filters);
     return res.json(users);
   },
 
-  async get(req: Request, res: Response) {
+  async get(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const { id } = paramsSchema.parse(req.params);
-    const user = await userService.getUserById(id);
+    const user = await userService.getUserById(tenantId, id);
     return res.json(user);
   },
 
   async create(req: AuthenticatedRequest, res: Response) {
-    const tenantId = req.tenantId;
-    if (!tenantId) {
-      throw new HttpException(403, "Tenant context missing");
-    }
+    const tenantId = ensureTenant(req);
     const payload = createUserSchema.parse(req.body);
     const user = await userService.createUser(payload, tenantId);
     return res.status(201).json(user);
   },
 
-  async update(req: Request, res: Response) {
+  async update(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const { id } = paramsSchema.parse(req.params);
     const payload = updateUserSchema.parse(req.body);
-    const user = await userService.updateUser(id, payload);
+    const user = await userService.updateUser(tenantId, id, payload);
     return res.json(user);
   },
 
-  async remove(req: Request, res: Response) {
+  async remove(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const { id } = paramsSchema.parse(req.params);
-    await userService.deleteUser(id);
+    await userService.deleteUser(tenantId, id);
     return res.status(204).send();
+  },
+
+  async assignRole(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    const { id } = paramsSchema.parse(req.params);
+    const { roleId } = assignRoleSchema.parse(req.body ?? {});
+    const user = await userService.assignRole(tenantId, id, roleId ?? null);
+    return res.json(user);
   },
 };

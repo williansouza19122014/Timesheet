@@ -1,6 +1,8 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { z } from "zod";
 import { timeEntryService } from "../services/timeEntryService";
+import type { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { HttpException } from "../utils/httpException";
 
 const listQuerySchema = z.object({
   userId: z.string().optional(),
@@ -32,32 +34,45 @@ const createSchema = timeEntryBaseSchema;
 
 const updateSchema = timeEntryBaseSchema.partial();
 
+const ensureTenant = (req: AuthenticatedRequest) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new HttpException(403, "Tenant context missing");
+  }
+  return tenantId;
+};
+
 export const timeEntryController = {
-  async list(req: Request, res: Response) {
+  async list(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const query = listQuerySchema.parse(req.query);
-    const entries = await timeEntryService.listEntries(query);
+    const entries = await timeEntryService.listEntries(tenantId, query);
     return res.json(entries);
   },
 
-  async get(req: Request, res: Response) {
-    const entry = await timeEntryService.getEntryById(req.params.id);
+  async get(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    const entry = await timeEntryService.getEntryById(tenantId, req.params.id);
     return res.json(entry);
   },
 
-  async create(req: Request, res: Response) {
+  async create(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = createSchema.parse(req.body);
-    const entry = await timeEntryService.createEntry(payload);
+    const entry = await timeEntryService.createEntry(tenantId, payload);
     return res.status(201).json(entry);
   },
 
-  async update(req: Request, res: Response) {
+  async update(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = updateSchema.parse(req.body);
-    const entry = await timeEntryService.updateEntry(req.params.id, payload);
+    const entry = await timeEntryService.updateEntry(tenantId, req.params.id, payload);
     return res.json(entry);
   },
 
-  async remove(req: Request, res: Response) {
-    await timeEntryService.deleteEntry(req.params.id);
+  async remove(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    await timeEntryService.deleteEntry(tenantId, req.params.id);
     return res.status(204).send();
   },
 };

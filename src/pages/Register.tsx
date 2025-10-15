@@ -92,7 +92,7 @@ const Register = () => {
 
       toast({
         title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login no sistema.",
+        description: "Seu tenant foi provisionado e voce ja esta autenticado.",
       });
 
       setFormData({
@@ -102,7 +102,7 @@ const Register = () => {
         cnpj: "",
       });
 
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Ocorreu um erro ao criar sua conta.";

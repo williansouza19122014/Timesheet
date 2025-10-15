@@ -20,6 +20,9 @@ import TimeSheet from "./pages/TimeSheet";
 import TimeTracking from "./pages/TimeTracking";
 import Users from "./pages/Users";
 import Vacations from "./pages/Vacations";
+import MasterUsers from "./pages/admin/MasterUsers";
+import RolesPermissions from "./pages/admin/RolesPermissions";
+import TenantSettings from "./pages/admin/TenantSettings";
 
 function App() {
   return (
@@ -44,6 +47,9 @@ function App() {
           <Route path="ponto" element={<TimeSheet />} />
           <Route path="timetracking" element={<TimeTracking />} />
           <Route path="users" element={<Users />} />
+          <Route path="admin/users" element={<MasterUsers />} />
+          <Route path="admin/roles" element={<RolesPermissions />} />
+          <Route path="admin/tenant" element={<TenantSettings />} />
           <Route path="ferias" element={<Vacations />} />
         </Route>
       </Route>

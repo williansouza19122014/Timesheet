@@ -96,101 +96,114 @@ const boardParamSchema = z.object({ boardId: z.string().min(1) });
 const columnParamSchema = z.object({ columnId: z.string().min(1) });
 const cardParamSchema = z.object({ cardId: z.string().min(1) });
 
-const getActor = (req: AuthenticatedRequest) => {
+const getContext = (req: AuthenticatedRequest) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new HttpException(403, "Tenant context missing");
+  }
   if (!req.userId || !req.userRole) {
     throw new HttpException(401, "Unauthorized");
   }
-  return { id: req.userId, role: req.userRole as UserRole };
+  return { tenantId, actor: { id: req.userId, role: req.userRole as UserRole } };
 };
 
 export const kanbanController = {
   async listBoards(req: AuthenticatedRequest, res: Response) {
     const { projectId, includeArchived } = listBoardsSchema.parse(req.query);
-    const actor = getActor(req);
-    const boards = await kanbanService.listBoards({ projectId, includeArchived }, actor);
+    const { tenantId, actor } = getContext(req);
+    const boards = await kanbanService.listBoards(
+      tenantId,
+      { projectId, includeArchived },
+      actor
+    );
     return res.json(boards);
   },
 
   async createBoard(req: AuthenticatedRequest, res: Response) {
     const payload = createBoardSchema.parse(req.body);
-    const actor = getActor(req);
-    const board = await kanbanService.createBoard(payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const board = await kanbanService.createBoard(tenantId, payload, actor);
     return res.status(201).json(board);
   },
 
   async updateBoard(req: AuthenticatedRequest, res: Response) {
     const { boardId } = boardParamSchema.parse(req.params);
     const payload = updateBoardSchema.parse(req.body);
-    const actor = getActor(req);
-    const board = await kanbanService.updateBoard(boardId, payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const board = await kanbanService.updateBoard(tenantId, boardId, payload, actor);
     return res.json(board);
   },
 
   async archiveBoard(req: AuthenticatedRequest, res: Response) {
     const { boardId } = boardParamSchema.parse(req.params);
     const { isArchived = true } = archiveBoardSchema.parse(req.body ?? {});
-    const actor = getActor(req);
-    const board = await kanbanService.setBoardArchiveStatus(boardId, isArchived, actor);
+    const { tenantId, actor } = getContext(req);
+    const board = await kanbanService.setBoardArchiveStatus(
+      tenantId,
+      boardId,
+      isArchived,
+      actor
+    );
     return res.json(board);
   },
 
   async createColumn(req: AuthenticatedRequest, res: Response) {
     const payload = createColumnSchema.parse(req.body);
-    const actor = getActor(req);
-    const column = await kanbanService.createColumn(payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const column = await kanbanService.createColumn(tenantId, payload, actor);
     return res.status(201).json(column);
   },
 
   async updateColumn(req: AuthenticatedRequest, res: Response) {
     const { columnId } = columnParamSchema.parse(req.params);
     const payload = updateColumnSchema.parse(req.body ?? {});
-    const actor = getActor(req);
-    const column = await kanbanService.updateColumn(columnId, payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const column = await kanbanService.updateColumn(tenantId, columnId, payload, actor);
     return res.json(column);
   },
 
   async deleteColumn(req: AuthenticatedRequest, res: Response) {
     const { columnId } = columnParamSchema.parse(req.params);
     const payload = deleteColumnSchema.parse(req.body ?? {});
-    const actor = getActor(req);
-    await kanbanService.deleteColumn(columnId, payload, actor);
+    const { tenantId, actor } = getContext(req);
+    await kanbanService.deleteColumn(tenantId, columnId, payload, actor);
     return res.status(204).send();
   },
 
   async createCard(req: AuthenticatedRequest, res: Response) {
     const payload = createCardSchema.parse(req.body);
-    const actor = getActor(req);
-    const card = await kanbanService.createCard(payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const card = await kanbanService.createCard(tenantId, payload, actor);
     return res.status(201).json(card);
   },
 
   async updateCard(req: AuthenticatedRequest, res: Response) {
     const { cardId } = cardParamSchema.parse(req.params);
     const payload = updateCardSchema.parse(req.body ?? {});
-    const actor = getActor(req);
-    const card = await kanbanService.updateCard(cardId, payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const card = await kanbanService.updateCard(tenantId, cardId, payload, actor);
     return res.json(card);
   },
 
   async moveCard(req: AuthenticatedRequest, res: Response) {
     const { cardId } = cardParamSchema.parse(req.params);
     const payload = moveCardSchema.parse(req.body ?? {});
-    const actor = getActor(req);
-    const card = await kanbanService.moveCard(cardId, payload, actor);
+    const { tenantId, actor } = getContext(req);
+    const card = await kanbanService.moveCard(tenantId, cardId, payload, actor);
     return res.json(card);
   },
 
   async deleteCard(req: AuthenticatedRequest, res: Response) {
     const { cardId } = cardParamSchema.parse(req.params);
-    const actor = getActor(req);
-    await kanbanService.deleteCard(cardId, actor);
+    const { tenantId, actor } = getContext(req);
+    await kanbanService.deleteCard(tenantId, cardId, actor);
     return res.status(204).send();
   },
 
   async listCardActivity(req: AuthenticatedRequest, res: Response) {
     const { cardId } = activityParamsSchema.parse(req.params);
-    const actor = getActor(req);
-    const activity = await kanbanService.listCardActivity(cardId, actor);
+    const { tenantId, actor } = getContext(req);
+    const activity = await kanbanService.listCardActivity(tenantId, cardId, actor);
     return res.json(activity);
   },
 };

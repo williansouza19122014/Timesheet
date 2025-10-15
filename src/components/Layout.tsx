@@ -15,6 +15,8 @@ import {
   Sun,
   Moon,
   LogOut,
+  Shield,
+  Crown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
@@ -22,6 +24,7 @@ import { useTheme } from "@/context/theme-context";
 import { useAccessControl, ROLE_LABELS } from "@/context/access-control-context";
 import type { FeatureKey } from "@/context/access-control-context";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
 import Inbox from "./notifications/Inbox";
 import { Button } from "./ui/button";
@@ -35,7 +38,9 @@ type NavigationItem = {
   name: string;
   href: string;
   icon: LucideIcon;
-  feature: FeatureKey;
+  feature?: FeatureKey;
+  permissionKey?: string;
+  requiresMaster?: boolean;
 };
 
 const getIconStyles = (isActive: boolean) =>
@@ -64,6 +69,7 @@ const Layout = () => {
   const { theme, toggleTheme } = useTheme();
   const { activeRole, canAccess } = useAccessControl();
   const { user, logout } = useAuth();
+  const { hasPermission, isMaster } = usePermission();
   const userName = user?.name ?? "Convidado";
   const roleLabel = ROLE_LABELS[activeRole];
   const avatarUrl = user?.photo ?? null;
@@ -134,6 +140,41 @@ const Layout = () => {
     },
   ];
 
+  const masterNavigation: NavigationItem[] = [
+    {
+      name: "Admin Usuarios",
+      href: "/admin/users",
+      icon: Users,
+      permissionKey: "users.list",
+      requiresMaster: true,
+    },
+    {
+      name: "Roles & Permissoes",
+      href: "/admin/roles",
+      icon: Shield,
+      permissionKey: "roles.list",
+      requiresMaster: true,
+    },
+    {
+      name: "Tenant",
+      href: "/admin/tenant",
+      icon: Crown,
+      permissionKey: "tenant.manage",
+      requiresMaster: true,
+    },
+  ];
+  const shouldDisplayItem = (item: NavigationItem) => {
+    const featureAllowed = item.feature ? canAccess(item.feature) : true;
+    const permissionAllowed = item.permissionKey ? hasPermission(item.permissionKey) || isMaster : true;
+    const masterAllowed = item.requiresMaster ? isMaster : true;
+    return featureAllowed && permissionAllowed && masterAllowed;
+  };
+
+  const primaryItems = navigation.filter(shouldDisplayItem);
+  const secondaryItems = [...secondaryNavigation, ...(isMaster ? masterNavigation : [])].filter(
+    shouldDisplayItem
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 dark:text-slate-100">
       <div className="flex min-h-screen">
@@ -171,7 +212,7 @@ const Layout = () => {
 
           <nav className="flex-1 space-y-1 overflow-y-auto p-2">
             <div className="space-y-1">
-              {navigation.filter((item) => canAccess(item.feature)).map((item) => (
+              {primaryItems.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}
@@ -204,7 +245,7 @@ const Layout = () => {
             </div>
 
             <div className="mt-auto space-y-1 border-t pt-4">
-              {secondaryNavigation.filter((item) => canAccess(item.feature)).map((item) => (
+              {secondaryItems.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}

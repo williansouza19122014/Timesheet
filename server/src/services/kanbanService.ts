@@ -14,6 +14,13 @@ import { ProjectModel, ProjectMemberModel } from "../models/Client";
 import { UserRole } from "../models/User";
 import { HttpException } from "../utils/httpException";
 
+const validateTenant = (tenantId: string): Types.ObjectId => {
+  if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+    throw new HttpException(400, "Invalid tenant context");
+  }
+  return new Types.ObjectId(tenantId);
+};
+
 type Actor = {
   id: string;
   role: UserRole;
@@ -584,7 +591,12 @@ const buildBoardQuery = async (filters: BoardFilters, actor: Actor) => {
 };
 
 export const kanbanService = {
-  async listBoards(filters: BoardFilters, actor: Actor): Promise<KanbanBoardResponse[]> {
+  async listBoards(
+    tenantId: string,
+    filters: BoardFilters,
+    actor: Actor
+  ): Promise<KanbanBoardResponse[]> {
+    validateTenant(tenantId);
     const query = await buildBoardQuery(filters, actor);
 
     const boards = await KanbanBoardModel.find(query).sort({ createdAt: 1 }).lean<BoardLean[]>();
@@ -609,7 +621,12 @@ export const kanbanService = {
     });
   },
 
-  async createBoard(input: CreateBoardInput, actor: Actor): Promise<KanbanBoardResponse> {
+  async createBoard(
+    tenantId: string,
+    input: CreateBoardInput,
+    actor: Actor
+  ): Promise<KanbanBoardResponse> {
+    validateTenant(tenantId);
     ensureBoardManager(actor);
     const projectId = await ensureProjectAccess(input.projectId, actor);
     const name = sanitizeString(input.name);
@@ -643,7 +660,13 @@ export const kanbanService = {
     return buildBoardResponse(board);
   },
 
-  async updateBoard(boardId: string, input: UpdateBoardInput, actor: Actor): Promise<KanbanBoardResponse> {
+  async updateBoard(
+    tenantId: string,
+    boardId: string,
+    input: UpdateBoardInput,
+    actor: Actor
+  ): Promise<KanbanBoardResponse> {
+    validateTenant(tenantId);
     const board = await ensureBoardAccess(boardId, actor);
     ensureBoardManager(actor);
 
@@ -667,11 +690,21 @@ export const kanbanService = {
     return buildBoardResponse(board);
   },
 
-  async setBoardArchiveStatus(boardId: string, isArchived: boolean, actor: Actor): Promise<KanbanBoardResponse> {
-    return this.updateBoard(boardId, { isArchived }, actor);
+  async setBoardArchiveStatus(
+    tenantId: string,
+    boardId: string,
+    isArchived: boolean,
+    actor: Actor
+  ): Promise<KanbanBoardResponse> {
+    return this.updateBoard(tenantId, boardId, { isArchived }, actor);
   },
 
-  async createColumn(input: CreateColumnInput, actor: Actor): Promise<KanbanColumnResponse> {
+  async createColumn(
+    tenantId: string,
+    input: CreateColumnInput,
+    actor: Actor
+  ): Promise<KanbanColumnResponse> {
+    validateTenant(tenantId);
     ensureBoardManager(actor);
     const board = await ensureBoardAccess(input.boardId, actor);
     const title = sanitizeString(input.title);
@@ -688,7 +721,13 @@ export const kanbanService = {
     return formatColumn(column.toObject() as ColumnLean, []);
   },
 
-  async updateColumn(columnId: string, input: UpdateColumnInput, actor: Actor): Promise<KanbanColumnResponse> {
+  async updateColumn(
+    tenantId: string,
+    columnId: string,
+    input: UpdateColumnInput,
+    actor: Actor
+  ): Promise<KanbanColumnResponse> {
+    validateTenant(tenantId);
     ensureBoardManager(actor);
     const column = await ensureColumnAccess(columnId, actor);
     const columnObjectId = column._id as Types.ObjectId;
@@ -725,7 +764,13 @@ export const kanbanService = {
     return formatColumn(column.toObject() as ColumnLean, cards);
   },
 
-  async deleteColumn(columnId: string, input: DeleteColumnInput, actor: Actor): Promise<void> {
+  async deleteColumn(
+    tenantId: string,
+    columnId: string,
+    input: DeleteColumnInput,
+    actor: Actor
+  ): Promise<void> {
+    validateTenant(tenantId);
     ensureBoardManager(actor);
     const column = await ensureColumnAccess(columnId, actor);
     const columnIdObj = column._id as Types.ObjectId;
@@ -765,7 +810,12 @@ export const kanbanService = {
     );
   },
 
-  async createCard(input: CreateCardInput, actor: Actor): Promise<KanbanCardResponse> {
+  async createCard(
+    tenantId: string,
+    input: CreateCardInput,
+    actor: Actor
+  ): Promise<KanbanCardResponse> {
+    validateTenant(tenantId);
     const column = await ensureColumnAccess(input.columnId, actor);
     const columnId = column._id as Types.ObjectId;
     const boardId = column.board as Types.ObjectId;
@@ -811,7 +861,13 @@ export const kanbanService = {
     return formatCard(card.toObject() as CardLean);
   },
 
-  async updateCard(cardId: string, input: UpdateCardInput, actor: Actor): Promise<KanbanCardResponse> {
+  async updateCard(
+    tenantId: string,
+    cardId: string,
+    input: UpdateCardInput,
+    actor: Actor
+  ): Promise<KanbanCardResponse> {
+    validateTenant(tenantId);
     const card = await ensureCardAccess(cardId, actor);
     const cardObjectId = card._id as Types.ObjectId;
     const board = await KanbanBoardModel.findById(card.board);
@@ -870,7 +926,13 @@ export const kanbanService = {
     return formatCard(card.toObject() as CardLean);
   },
 
-  async moveCard(cardId: string, input: MoveCardInput, actor: Actor): Promise<KanbanCardResponse> {
+  async moveCard(
+    tenantId: string,
+    cardId: string,
+    input: MoveCardInput,
+    actor: Actor
+  ): Promise<KanbanCardResponse> {
+    validateTenant(tenantId);
     const card = await ensureCardAccess(cardId, actor);
     const cardObjectId = card._id as Types.ObjectId;
     const currentColumnId = card.column;
@@ -929,7 +991,8 @@ export const kanbanService = {
     return formatCard(card.toObject() as CardLean);
   },
 
-  async deleteCard(cardId: string, actor: Actor): Promise<void> {
+  async deleteCard(tenantId: string, cardId: string, actor: Actor): Promise<void> {
+    validateTenant(tenantId);
     const card = await ensureCardAccess(cardId, actor);
     const cardObjectId = card._id as Types.ObjectId;
     await KanbanCardModel.updateMany(
@@ -945,7 +1008,12 @@ export const kanbanService = {
     await card.deleteOne();
   },
 
-  async listCardActivity(cardId: string, actor: Actor): Promise<CardActivityResponse[]> {
+  async listCardActivity(
+    tenantId: string,
+    cardId: string,
+    actor: Actor
+  ): Promise<CardActivityResponse[]> {
+    validateTenant(tenantId);
     const card = await ensureCardAccess(cardId, actor);
     const cardObjectId = card._id as Types.ObjectId;
     const activities = await KanbanCardActivityModel.find({ card: cardObjectId })

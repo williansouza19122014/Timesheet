@@ -1,7 +1,9 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { z } from "zod";
 import { vacationService } from "../services/vacationService";
 import { VacationRequestStatus } from "../models/Vacation";
+import type { AuthenticatedRequest } from "../middleware/authMiddleware";
+import { HttpException } from "../utils/httpException";
 
 // ==================== VALIDATION SCHEMAS ====================
 
@@ -56,6 +58,14 @@ const vacationRequestQuerySchema = z.object({
   vacationPeriodId: z.string().optional(),
 });
 
+const ensureTenant = (req: AuthenticatedRequest) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new HttpException(403, "Tenant context missing");
+  }
+  return tenantId;
+};
+
 // ==================== CONTROLLERS ====================
 
 export const vacationController = {
@@ -65,9 +75,10 @@ export const vacationController = {
    * GET /api/vacations/periods
    * List vacation periods with optional filters
    */
-  async listPeriods(req: Request, res: Response) {
+  async listPeriods(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const query = vacationPeriodQuerySchema.parse(req.query);
-    const periods = await vacationService.listPeriods(query);
+    const periods = await vacationService.listPeriods(tenantId, query);
     return res.json(periods);
   },
 
@@ -75,8 +86,9 @@ export const vacationController = {
    * GET /api/vacations/periods/:id
    * Get a specific vacation period
    */
-  async getPeriod(req: Request, res: Response) {
-    const period = await vacationService.getPeriodById(req.params.id);
+  async getPeriod(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    const period = await vacationService.getPeriodById(tenantId, req.params.id);
     return res.json(period);
   },
 
@@ -84,9 +96,10 @@ export const vacationController = {
    * POST /api/vacations/periods
    * Create a new vacation period
    */
-  async createPeriod(req: Request, res: Response) {
+  async createPeriod(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = vacationPeriodCreateSchema.parse(req.body);
-    const period = await vacationService.createPeriod(payload);
+    const period = await vacationService.createPeriod(tenantId, payload);
     return res.status(201).json(period);
   },
 
@@ -94,9 +107,10 @@ export const vacationController = {
    * PUT /api/vacations/periods/:id
    * Update a vacation period
    */
-  async updatePeriod(req: Request, res: Response) {
+  async updatePeriod(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = vacationPeriodUpdateSchema.parse(req.body);
-    const period = await vacationService.updatePeriod(req.params.id, payload);
+    const period = await vacationService.updatePeriod(tenantId, req.params.id, payload);
     return res.json(period);
   },
 
@@ -104,8 +118,9 @@ export const vacationController = {
    * DELETE /api/vacations/periods/:id
    * Delete a vacation period
    */
-  async deletePeriod(req: Request, res: Response) {
-    await vacationService.deletePeriod(req.params.id);
+  async deletePeriod(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    await vacationService.deletePeriod(tenantId, req.params.id);
     return res.status(204).send();
   },
 
@@ -115,9 +130,10 @@ export const vacationController = {
    * GET /api/vacations/requests
    * List vacation requests with optional filters
    */
-  async listRequests(req: Request, res: Response) {
+  async listRequests(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const query = vacationRequestQuerySchema.parse(req.query);
-    const requests = await vacationService.listRequests(query);
+    const requests = await vacationService.listRequests(tenantId, query);
     return res.json(requests);
   },
 
@@ -125,8 +141,9 @@ export const vacationController = {
    * GET /api/vacations/requests/:id
    * Get a specific vacation request
    */
-  async getRequest(req: Request, res: Response) {
-    const request = await vacationService.getRequestById(req.params.id);
+  async getRequest(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    const request = await vacationService.getRequestById(tenantId, req.params.id);
     return res.json(request);
   },
 
@@ -134,9 +151,10 @@ export const vacationController = {
    * POST /api/vacations/requests
    * Create a new vacation request
    */
-  async createRequest(req: Request, res: Response) {
+  async createRequest(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = vacationRequestCreateSchema.parse(req.body);
-    const request = await vacationService.createRequest(payload);
+    const request = await vacationService.createRequest(tenantId, payload);
     return res.status(201).json(request);
   },
 
@@ -144,9 +162,10 @@ export const vacationController = {
    * PUT /api/vacations/requests/:id
    * Update a vacation request (including approval/rejection)
    */
-  async updateRequest(req: Request, res: Response) {
+  async updateRequest(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
     const payload = vacationRequestUpdateSchema.parse(req.body);
-    const request = await vacationService.updateRequest(req.params.id, payload);
+    const request = await vacationService.updateRequest(tenantId, req.params.id, payload);
     return res.json(request);
   },
 
@@ -154,8 +173,9 @@ export const vacationController = {
    * POST /api/vacations/requests/:id/cancel
    * Cancel a vacation request
    */
-  async cancelRequest(req: Request, res: Response) {
-    const request = await vacationService.cancelRequest(req.params.id);
+  async cancelRequest(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    const request = await vacationService.cancelRequest(tenantId, req.params.id);
     return res.json(request);
   },
 
@@ -163,8 +183,9 @@ export const vacationController = {
    * DELETE /api/vacations/requests/:id
    * Delete a vacation request (hard delete)
    */
-  async deleteRequest(req: Request, res: Response) {
-    await vacationService.deleteRequest(req.params.id);
+  async deleteRequest(req: AuthenticatedRequest, res: Response) {
+    const tenantId = ensureTenant(req);
+    await vacationService.deleteRequest(tenantId, req.params.id);
     return res.status(204).send();
   },
 };

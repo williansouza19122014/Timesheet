@@ -10,18 +10,18 @@ import { asyncHandler } from "../utils/asyncHandler";
 const vacationRouter = Router();
 
 const resolvePeriodOwner = async (req: AuthenticatedRequest) => {
-  if (!req.params?.id) {
+  if (!req.params?.id || !req.tenantId) {
     return undefined;
   }
-  const period = await vacationService.getPeriodById(req.params.id);
+  const period = await vacationService.getPeriodById(req.tenantId, req.params.id);
   return period.userId;
 };
 
 const resolveRequestOwner = async (req: AuthenticatedRequest) => {
-  if (!req.params?.id) {
+  if (!req.params?.id || !req.tenantId) {
     return undefined;
   }
-  const request = await vacationService.getRequestById(req.params.id);
+  const request = await vacationService.getRequestById(req.tenantId, req.params.id);
   return request.userId;
 };
 

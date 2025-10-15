@@ -3,6 +3,7 @@ import { projectController } from "../controllers/projectController";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { tenantMiddleware } from "../middleware/tenantMiddleware";
 import { authorize } from "../middleware/authorize";
+import { checkPermission } from "../middleware/permissionMiddleware";
 import { UserRole } from "../models/User";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -17,16 +18,19 @@ projectRouter.get("/:id", asyncHandler(projectController.getProject));
 projectRouter.post(
   "/",
   authorize({ roles: [UserRole.ADMIN, UserRole.MANAGER] }),
+  checkPermission("projects.create"),
   asyncHandler(projectController.createProject)
 );
 projectRouter.put(
   "/:id",
   authorize({ roles: [UserRole.ADMIN, UserRole.MANAGER] }),
+  checkPermission("projects.update"),
   asyncHandler(projectController.updateProject)
 );
 projectRouter.delete(
   "/:id",
   authorize({ roles: [UserRole.ADMIN] }),
+  checkPermission("projects.delete"),
   asyncHandler(projectController.deleteProject)
 );
 
@@ -36,17 +40,20 @@ projectRouter.get("/:id/members/active", asyncHandler(projectController.listActi
 projectRouter.post(
   "/:id/members",
   authorize({ roles: [UserRole.ADMIN, UserRole.MANAGER] }),
+  checkPermission("projects.members.manage"),
   asyncHandler(projectController.addMember)
 );
 projectRouter.get("/:projectId/members/:memberId", asyncHandler(projectController.getMember));
 projectRouter.put(
   "/:projectId/members/:memberId",
   authorize({ roles: [UserRole.ADMIN, UserRole.MANAGER] }),
+  checkPermission("projects.members.manage"),
   asyncHandler(projectController.updateMember)
 );
 projectRouter.delete(
   "/:projectId/members/:memberId",
   authorize({ roles: [UserRole.ADMIN, UserRole.MANAGER] }),
+  checkPermission("projects.members.manage"),
   asyncHandler(projectController.removeMember)
 );
 

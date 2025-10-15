@@ -18,7 +18,15 @@ import {
   type SkillInfo,
 } from "../models/User";
 import { ClientModel, ProjectModel } from "../models/Client";
+import { RoleModel } from "../models/Role";
 import { HttpException } from "../utils/httpException";
+
+const validateTenant = (tenantId: string): Types.ObjectId => {
+  if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+    throw new HttpException(400, "Invalid tenant context");
+  }
+  return new Types.ObjectId(tenantId);
+};
 
 type RelationalModel = typeof ClientModel | typeof ProjectModel;
 
@@ -497,6 +505,7 @@ const normalizeSkills = (input?: SkillInput[] | null): SkillInfo[] | undefined =
 };
 
 const normalizeIdArray = async (
+  tenantId: Types.ObjectId,
   input: (string | null | undefined)[] | null | undefined,
   model: RelationalModel,
   entityLabel: string
@@ -515,7 +524,9 @@ const normalizeIdArray = async (
     throw new HttpException(400, `Invalid ${entityLabel} id: ${invalid[0]}`);
   }
 
-  const count = await model.countDocuments({ _id: { $in: values } }).exec();
+  const count = await model
+    .countDocuments({ _id: { $in: values }, tenantId })
+    .exec();
   if (count !== values.length) {
     throw new HttpException(404, `Some ${entityLabel}s were not found`);
   }
@@ -524,6 +535,7 @@ const normalizeIdArray = async (
 };
 
 const normalizeManagerId = async (
+  tenantId: Types.ObjectId,
   managerId: string | null | undefined,
   options: { selfId?: string } = {}
 ): Promise<Types.ObjectId | null | undefined> => {
@@ -536,7 +548,7 @@ const normalizeManagerId = async (
   if (options.selfId && trimmed === options.selfId) {
     throw new HttpException(400, "User cannot be their own manager");
   }
-  const exists = await UserModel.exists({ _id: trimmed });
+  const exists = await UserModel.exists({ _id: trimmed, tenantId });
   if (!exists) {
     throw new HttpException(404, "Manager not found");
   }
@@ -712,8 +724,9 @@ const buildSearchFilter = (search?: string) => {
 };
 
 export const userService = {
-  async listUsers(filters: UserFilters = {}): Promise<UserResponse[]> {
-    const query: FilterQuery<UserDoc> = {};
+  async listUsers(tenantId: string, filters: UserFilters = {}): Promise<UserResponse[]> {
+    const tenantObjectId = validateTenant(tenantId);
+    const query: FilterQuery<UserDoc> = { tenantId: tenantObjectId };
 
     if (filters.status) {
       query.status = filters.status;
@@ -747,19 +760,31 @@ export const userService = {
     }
 
     const users = await UserModel.find(query)
-      .populate("manager", "name email role")
+      .populate({
+        path: "manager",
+        select: "name email role",
+        match: { tenantId: tenantObjectId },
+      })
       .sort({ createdAt: -1 })
       .exec();
 
     return users.map((user) => formatUser(user));
   },
 
-  async getUserById(id: string): Promise<UserResponse> {
+  async getUserById(tenantId: string, id: string): Promise<UserResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid user ID");
     }
 
-    const user = await UserModel.findById(id).populate("manager", "name email role").exec();
+    const tenantObjectId = validateTenant(tenantId);
+
+    const user = await UserModel.findOne({ _id: id, tenantId: tenantObjectId })
+      .populate({
+        path: "manager",
+        select: "name email role",
+        match: { tenantId: tenantObjectId },
+      })
+      .exec();
     if (!user) {
       throw new HttpException(404, "User not found");
     }
@@ -768,13 +793,14 @@ export const userService = {
   },
 
   async createUser(input: CreateUserInput, tenantId: string): Promise<UserResponse> {
+    const tenantObjectId = validateTenant(tenantId);
     const email = sanitizeEmail(input.email);
     const name = sanitizeString(input.name);
     if (!name) {
       throw new HttpException(400, "Name is required");
     }
 
-    const existing = await UserModel.exists({ tenantId, email });
+    const existing = await UserModel.exists({ tenantId: tenantObjectId, email });
     if (existing) {
       throw new HttpException(409, "E-mail already registered");
     }
@@ -786,16 +812,18 @@ export const userService = {
     const birthDate = parseDateInput(input.birthDate, "birthDate");
 
     const selectedClients = await normalizeIdArray(
+      tenantObjectId,
       input.selectedClients,
       ClientModel,
       "client"
     );
     const selectedProjects = await normalizeIdArray(
+      tenantObjectId,
       input.selectedProjects,
       ProjectModel,
       "project"
     );
-    const manager = await normalizeManagerId(input.managerId);
+    const manager = await normalizeManagerId(tenantObjectId, input.managerId);
 
     const workSchedule = normalizeWorkSchedule(input.workSchedule);
     const address = normalizeAddress(input.address);
@@ -817,7 +845,7 @@ export const userService = {
     const cpf = normalizeCpf(input.cpf);
 
     const user = await UserModel.create({
-      tenantId: new Types.ObjectId(tenantId),
+      tenantId: tenantObjectId,
       email,
       passwordHash,
       name,
@@ -849,15 +877,17 @@ export const userService = {
       ...(bankInfo ? { bankInfo } : {}),
     });
 
-    return this.getUserById(user.id);
+    return this.getUserById(tenantId, user.id);
   },
 
-  async updateUser(id: string, input: UpdateUserInput): Promise<UserResponse> {
+  async updateUser(tenantId: string, id: string, input: UpdateUserInput): Promise<UserResponse> {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid user ID");
     }
 
-    const user = await UserModel.findById(id);
+    const tenantObjectId = validateTenant(tenantId);
+
+    const user = await UserModel.findOne({ _id: id, tenantId: tenantObjectId });
     if (!user) {
       throw new HttpException(404, "User not found");
     }
@@ -868,7 +898,11 @@ export const userService = {
         throw new HttpException(400, "Invalid e-mail");
       }
       if (email !== user.email) {
-        const exists = await UserModel.exists({ email, _id: { $ne: id } });
+        const exists = await UserModel.exists({
+          tenantId: tenantObjectId,
+          email,
+          _id: { $ne: id },
+        });
         if (exists) {
           throw new HttpException(409, "E-mail already registered");
         }
@@ -945,7 +979,7 @@ export const userService = {
       user.address = address;
     }
 
-    const manager = await normalizeManagerId(input.managerId, { selfId: id });
+    const manager = await normalizeManagerId(tenantObjectId, input.managerId, { selfId: id });
     if (manager !== undefined) {
       user.manager = manager ?? undefined;
     }
@@ -963,6 +997,7 @@ export const userService = {
     }
 
     const selectedClients = await normalizeIdArray(
+      tenantObjectId,
       input.selectedClients,
       ClientModel,
       "client"
@@ -972,6 +1007,7 @@ export const userService = {
     }
 
     const selectedProjects = await normalizeIdArray(
+      tenantObjectId,
       input.selectedProjects,
       ProjectModel,
       "project"
@@ -1020,15 +1056,51 @@ export const userService = {
     }
 
     await user.save();
-    return this.getUserById(id);
+    return this.getUserById(tenantId, id);
   },
 
-  async deleteUser(id: string): Promise<void> {
+  async assignRole(tenantId: string, userId: string, roleId: string | null): Promise<UserResponse> {
+    const tenantObjectId = validateTenant(tenantId);
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new HttpException(400, "Invalid user ID");
+    }
+
+    const user = await UserModel.findOne({ _id: userId, tenantId: tenantObjectId });
+    if (!user) {
+      throw new HttpException(404, "User not found");
+    }
+
+    if (roleId) {
+      if (!Types.ObjectId.isValid(roleId)) {
+        throw new HttpException(400, "Invalid role ID");
+      }
+      const role = await RoleModel.findOne({
+        _id: new Types.ObjectId(roleId),
+        tenantId: tenantObjectId,
+      });
+      if (!role) {
+        throw new HttpException(404, "Role not found");
+      }
+      user.roleId = role._id as Types.ObjectId;
+      if (Object.values(UserRole).includes(role.name as UserRole)) {
+        user.role = role.name as UserRole;
+      }
+    } else {
+      user.roleId = undefined;
+    }
+
+    await user.save();
+    return this.getUserById(tenantId, user.id);
+  },
+
+  async deleteUser(tenantId: string, id: string): Promise<void> {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid user ID");
     }
 
-    const user = await UserModel.findById(id);
+    const tenantObjectId = validateTenant(tenantId);
+
+    const user = await UserModel.findOne({ _id: id, tenantId: tenantObjectId });
     if (!user) {
       throw new HttpException(404, "User not found");
     }

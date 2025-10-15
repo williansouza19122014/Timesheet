@@ -20,6 +20,13 @@ import {
 import { UserModel, UserRole } from "../models/User";
 import { HttpException } from "../utils/httpException";
 
+const validateTenant = (tenantId: string): Types.ObjectId => {
+  if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+    throw new HttpException(400, "Invalid tenant context");
+  }
+  return new Types.ObjectId(tenantId);
+};
+
 
 interface Actor {
   id: string;
@@ -102,11 +109,12 @@ const applyDateMatch = <T extends { date?: unknown }>(
   return query;
 };
 
-const resolveAccessibleProjectIds = async (actor: Actor) => {
+const resolveAccessibleProjectIds = async (tenantId: Types.ObjectId, actor: Actor) => {
   if (isManager(actor)) {
     return null; // no restriction
   }
   const memberships = await ProjectMemberModel.find({
+    tenantId,
     user: ensureObjectId(actor.id, "userId"),
     $or: [{ endDate: { $exists: false } }, { endDate: null }],
   }).select("project");
@@ -114,9 +122,13 @@ const resolveAccessibleProjectIds = async (actor: Actor) => {
   return ids.length ? ids : [];
 };
 
-const ensureProjectPermission = async (projectId: string, actor: Actor) => {
+const ensureProjectPermission = async (
+  tenantId: Types.ObjectId,
+  projectId: string,
+  actor: Actor
+) => {
   const projectObjectId = ensureObjectId(projectId, "projectId");
-  const exists = await ProjectModel.exists({ _id: projectObjectId });
+  const exists = await ProjectModel.exists({ _id: projectObjectId, tenantId });
   if (!exists) {
     throw new HttpException(404, "Project not found");
   }
@@ -124,6 +136,7 @@ const ensureProjectPermission = async (projectId: string, actor: Actor) => {
     return projectObjectId;
   }
   const membership = await ProjectMemberModel.exists({
+    tenantId,
     project: projectObjectId,
     user: ensureObjectId(actor.id, "userId"),
     $or: [{ endDate: { $exists: false } }, { endDate: null }],
@@ -134,15 +147,29 @@ const ensureProjectPermission = async (projectId: string, actor: Actor) => {
   return projectObjectId;
 };
 
-const ensureUserVisibility = (filters: { userId?: string }, actor: Actor) => {
+const ensureUserVisibility = async (
+  tenantId: Types.ObjectId,
+  filters: { userId?: string },
+  actor: Actor
+) => {
   if (filters.userId) {
     if (!isManager(actor) && filters.userId !== actor.id) {
       throw new HttpException(403, "You cannot view other user's data");
     }
-    return ensureObjectId(filters.userId, "userId");
+    const userId = ensureObjectId(filters.userId, "userId");
+    const exists = await UserModel.exists({ _id: userId, tenantId });
+    if (!exists) {
+      throw new HttpException(404, "User not found");
+    }
+    return userId;
   }
   if (!isManager(actor)) {
-    return ensureObjectId(actor.id, "userId");
+    const userId = ensureObjectId(actor.id, "userId");
+    const exists = await UserModel.exists({ _id: userId, tenantId });
+    if (!exists) {
+      throw new HttpException(404, "User not found");
+    }
+    return userId;
   }
   return undefined;
 };
@@ -316,6 +343,7 @@ const sumHoursByDay = async (
 };
 
 const aggregateHoursByProject = async (
+  tenantId: Types.ObjectId,
   projectIds: Types.ObjectId[],
   range: { start?: Date; end?: Date }
 ) => {
@@ -324,7 +352,7 @@ const aggregateHoursByProject = async (
   }
 
   const pipeline: PipelineStage[] = [
-    { $match: { project: { $in: projectIds } } },
+    { $match: { tenantId, project: { $in: projectIds } } },
     {
       $lookup: {
         from: "timeentries",
@@ -334,6 +362,7 @@ const aggregateHoursByProject = async (
       },
     },
     { $unwind: "$entry" },
+    { $match: { "entry.tenantId": tenantId } },
   ];
 
   if (range.start || range.end) {
@@ -362,22 +391,32 @@ const aggregateHoursByProject = async (
 };
 
 export const reportService = {
-  async getTimeSummary(filters: TimeSummaryFilters, actor: Actor) {
+  async getTimeSummary(
+    tenantId: string,
+    filters: TimeSummaryFilters,
+    actor: Actor
+  ) {
+    const tenantObjectId = validateTenant(tenantId);
     const range = parseDateRange(filters.startDate, filters.endDate);
 
-    const match: FilterQuery<TimeEntryDoc> = {};
+    const match: FilterQuery<TimeEntryDoc> = { tenantId: tenantObjectId };
     if (range.start || range.end) {
       applyDateMatch(match, range);
     }
 
-    const userObjectId = ensureUserVisibility({ userId: filters.userId }, actor);
+    const userObjectId = await ensureUserVisibility(
+      tenantObjectId,
+      { userId: filters.userId },
+      actor
+    );
     if (userObjectId) {
       match.user = userObjectId;
     }
 
     let projectObjectId: Types.ObjectId | undefined;
     if (filters.projectId) {
-      projectObjectId = await ensureProjectPermission(filters.projectId, actor);
+      projectObjectId = await ensureProjectPermission(tenantObjectId, filters.projectId, actor);
+      match.project = projectObjectId;
     }
 
     const pipeline = await buildTimeEntryPipeline(match, projectObjectId);
@@ -402,15 +441,20 @@ export const reportService = {
     };
   },
 
-  async getProjectPerformance(filters: ProjectPerformanceFilters, actor: Actor) {
+  async getProjectPerformance(
+    tenantId: string,
+    filters: ProjectPerformanceFilters,
+    actor: Actor
+  ) {
+    const tenantObjectId = validateTenant(tenantId);
     const range = parseDateRange(filters.startDate, filters.endDate);
 
-    const accessibleProjects = await resolveAccessibleProjectIds(actor);
+    const accessibleProjects = await resolveAccessibleProjectIds(tenantObjectId, actor);
     if (Array.isArray(accessibleProjects) && accessibleProjects.length === 0) {
       return { projects: [] };
     }
 
-    const projectMatch: FilterQuery<ProjectDoc> = {};
+    const projectMatch: FilterQuery<ProjectDoc> = { tenantId: tenantObjectId };
     if (filters.onlyActive) {
       projectMatch.$or = [
         { endDate: { $exists: false } },
@@ -441,10 +485,10 @@ export const reportService = {
     }
 
     const projectIds = projects.map((project) => project._id as Types.ObjectId);
-    const hoursByProject = await aggregateHoursByProject(projectIds, range);
+    const hoursByProject = await aggregateHoursByProject(tenantObjectId, projectIds, range);
 
     const memberStats = await ProjectMemberModel.aggregate([
-      { $match: { project: { $in: projectIds } } },
+      { $match: { tenantId: tenantObjectId, project: { $in: projectIds } } },
       {
         $group: {
           _id: "$project",
@@ -498,16 +542,18 @@ export const reportService = {
     return { projects: formatted };
   },
 
-  async getVacationSummary(filters: VacationSummaryFilters, actor: Actor) {
+  async getVacationSummary(
+    tenantId: string,
+    filters: VacationSummaryFilters,
+    actor: Actor
+  ) {
+    const tenantObjectId = validateTenant(tenantId);
     const range = parseDateRange(filters.startDate, filters.endDate);
 
-    const match: FilterQuery<VacationRequestDoc> = {};
+    const match: FilterQuery<VacationRequestDoc> = { tenantId: tenantObjectId };
     if (!isManager(actor)) {
       match.user = ensureObjectId(actor.id, "userId");
-    } else if (filters.status) {
-      match.status = filters.status;
     }
-
     if (filters.status) {
       match.status = filters.status;
     }
@@ -523,7 +569,11 @@ export const reportService = {
     }
 
     const requests = await VacationRequestModel.find(match)
-      .populate("user", "name email")
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { tenantId: tenantObjectId },
+      })
       .lean<VacationRequestDoc[]>();
 
     const totalRequests = requests.length;
@@ -585,18 +635,27 @@ export const reportService = {
     };
   },
 
-  async getUserWorkload(filters: UserWorkloadFilters, actor: Actor) {
+  async getUserWorkload(
+    tenantId: string,
+    filters: UserWorkloadFilters,
+    actor: Actor
+  ) {
+    const tenantObjectId = validateTenant(tenantId);
     const range = parseDateRange(filters.startDate, filters.endDate);
 
-    const match: FilterQuery<TimeEntryDoc> = {};
+    const match: FilterQuery<TimeEntryDoc> = { tenantId: tenantObjectId };
     applyDateMatch(match, range);
 
     let projectObjectId: Types.ObjectId | undefined;
     if (filters.projectId) {
-      projectObjectId = await ensureProjectPermission(filters.projectId, actor);
+      projectObjectId = await ensureProjectPermission(tenantObjectId, filters.projectId, actor);
     }
 
-    const userObjectId = ensureUserVisibility({ userId: filters.userId }, actor);
+    const userObjectId = await ensureUserVisibility(
+      tenantObjectId,
+      { userId: filters.userId },
+      actor
+    );
     if (userObjectId) {
       match.user = userObjectId;
     }
@@ -635,8 +694,19 @@ export const reportService = {
       {
         $lookup: {
           from: "users",
-          localField: "_id",
-          foreignField: "_id",
+          let: { userId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$userId"] },
+                    { $eq: ["$tenantId", tenantObjectId] },
+                  ],
+                },
+              },
+            },
+          ],
           as: "user",
         },
       },
