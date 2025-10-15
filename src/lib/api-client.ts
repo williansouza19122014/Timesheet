@@ -18,6 +18,10 @@ function resolveBaseUrl(): string {
   if (typeof window !== "undefined") {
     const origin = normalizeBaseUrl(window.location.origin);
 
+    if (origin.includes(".vercel.app")) {
+      return "https://timesheet-t0az.onrender.com";
+    }
+
     // Ambiente local: o backend roda normalmente na porta 3000 enquanto o Vite usa 5173.
     if (typeof window !== "undefined" && window.location.host.includes("localhost")) {
       const port = window.location.port;
