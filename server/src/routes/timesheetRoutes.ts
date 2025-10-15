@@ -10,10 +10,10 @@ import { asyncHandler } from "../utils/asyncHandler";
 const timesheetRouter = Router();
 
 const resolveEntryOwner = async (req: AuthenticatedRequest) => {
-  if (!req.params?.id) {
+  if (!req.params?.id || !req.tenantId) {
     return undefined;
   }
-  const entry = await timeEntryService.getEntryById(req.params.id);
+  const entry = await timeEntryService.getEntryById(req.tenantId, req.params.id);
   return entry.userId;
 };
 

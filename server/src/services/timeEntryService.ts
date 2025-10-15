@@ -185,17 +185,26 @@ const formatMinutesToTime = (minutes: number) => {
   return `${hours.toString().padStart(2, "0")}:${remainingMinutes.toString().padStart(2, "0")}`;
 };
 
-async function ensureUserExists(userId: string) {
+const validateTenant = (tenantId: string) => {
+  if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+    throw new HttpException(400, "Invalid tenant context");
+  }
+};
+
+async function ensureUserExists(tenantId: string, userId: string) {
+  validateTenant(tenantId);
   if (!Types.ObjectId.isValid(userId)) {
     throw new HttpException(400, "Invalid userId");
   }
-  const exists = await UserModel.exists({ _id: userId });
+  const tenantObjectId = new Types.ObjectId(tenantId);
+  const exists = await UserModel.exists({ _id: userId, tenantId: tenantObjectId });
   if (!exists) {
     throw new HttpException(404, "User not found");
   }
 }
 
-async function ensureProjectsExist(allocations?: AllocationPayload[]) {
+async function ensureProjectsExist(tenantId: string, allocations?: AllocationPayload[]) {
+  validateTenant(tenantId);
   if (!allocations?.length) return;
 
   const projectIds = allocations
@@ -205,7 +214,11 @@ async function ensureProjectsExist(allocations?: AllocationPayload[]) {
   if (!projectIds.length) return;
 
   const uniqueIds = Array.from(new Set(projectIds));
-  const count = await ProjectModel.countDocuments({ _id: { $in: uniqueIds } });
+  const tenantObjectId = new Types.ObjectId(tenantId);
+  const count = await ProjectModel.countDocuments({
+    _id: { $in: uniqueIds },
+    tenantId: tenantObjectId,
+  });
 
   if (count !== uniqueIds.length) {
     throw new HttpException(400, "One or more projects not found");
@@ -260,21 +273,35 @@ function buildTimeEntryResponse(
   };
 }
 
-async function fetchEntryWithAllocations(id: string) {
+async function fetchEntryWithAllocations(tenantId: string, id: string) {
+  validateTenant(tenantId);
   if (!Types.ObjectId.isValid(id)) {
     throw new HttpException(400, "Invalid time entry id");
   }
 
-  const entry = await TimeEntryModel.findById(id)
-    .populate("user", "name email")
+  const tenantObjectId = new Types.ObjectId(tenantId);
+
+  const entry = await TimeEntryModel.findOne({ _id: id, tenantId: tenantObjectId })
+    .populate({
+      path: "user",
+      select: "name email",
+      match: { tenantId: tenantObjectId },
+    })
     .lean<TimeEntryLean | null>();
 
   if (!entry) {
     throw new HttpException(404, "Time entry not found");
   }
 
-  const allocations = await TimeEntryAllocationModel.find({ timeEntry: id })
-    .populate("project", "name")
+  const allocations = await TimeEntryAllocationModel.find({
+    tenantId: tenantObjectId,
+    timeEntry: entry._id,
+  })
+    .populate({
+      path: "project",
+      select: "name",
+      match: { tenantId: tenantObjectId },
+    })
     .lean<TimeEntryAllocationLean[]>();
 
   return buildTimeEntryResponse(entry, allocations);
@@ -284,13 +311,17 @@ async function fetchEntryWithAllocations(id: string) {
    Service
    ====================== */
 export const timeEntryService = {
-  async listEntries(filters: TimeEntryFilters = {}) {
-    const query: FilterQuery<TimeEntryDoc> = {};
+  async listEntries(tenantId: string, filters: TimeEntryFilters = {}) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    const query: FilterQuery<TimeEntryDoc> = { tenantId: tenantObjectId };
 
     if (filters.userId) {
       if (!Types.ObjectId.isValid(filters.userId)) {
         throw new HttpException(400, "Invalid userId filter");
       }
+      await ensureUserExists(tenantId, filters.userId);
       query.user = new Types.ObjectId(filters.userId);
     }
 
@@ -311,7 +342,11 @@ export const timeEntryService = {
     }
 
     const entries = await TimeEntryModel.find(query)
-      .populate("user", "name email")
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { tenantId: tenantObjectId },
+      })
       .sort({ date: -1 })
       .lean<TimeEntryLean[]>();
 
@@ -320,8 +355,15 @@ export const timeEntryService = {
     const allocations =
       entryIds.length === 0
         ? []
-        : await TimeEntryAllocationModel.find({ timeEntry: { $in: entryIds } })
-            .populate("project", "name")
+        : await TimeEntryAllocationModel.find({
+            tenantId: tenantObjectId,
+            timeEntry: { $in: entryIds },
+          })
+            .populate({
+              path: "project",
+              select: "name",
+              match: { tenantId: tenantObjectId },
+            })
             .lean<TimeEntryAllocationLean[]>();
 
     const allocationsByEntry = new Map<string, TimeEntryAllocationLean[]>();
@@ -340,13 +382,16 @@ export const timeEntryService = {
     );
   },
 
-  async getEntryById(id: string) {
-    return fetchEntryWithAllocations(id);
+  async getEntryById(tenantId: string, id: string) {
+    return fetchEntryWithAllocations(tenantId, id);
   },
 
-  async createEntry(payload: TimeEntryCreateInput) {
-    await ensureUserExists(payload.userId);
-    await ensureProjectsExist(payload.allocations);
+  async createEntry(tenantId: string, payload: TimeEntryCreateInput) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    await ensureUserExists(tenantId, payload.userId);
+    await ensureProjectsExist(tenantId, payload.allocations);
 
     const date = parseDate(payload.date);
     if (!date) {
@@ -355,9 +400,11 @@ export const timeEntryService = {
 
     const computedMinutes = computeTotalMinutesFromPayload(payload);
     const providedTotal = typeof payload.totalHours === "string" ? payload.totalHours.trim() : "";
-    const totalHoursValue = providedTotal.length > 0 ? providedTotal : formatMinutesToTime(computedMinutes);
+    const totalHoursValue =
+      providedTotal.length > 0 ? providedTotal : formatMinutesToTime(computedMinutes);
 
     const entry = await TimeEntryModel.create({
+      tenantId: tenantObjectId,
       user: new Types.ObjectId(payload.userId),
       date,
       entrada1: payload.entrada1 ?? undefined,
@@ -372,25 +419,29 @@ export const timeEntryService = {
 
     if (payload.allocations?.length) {
       const docs = payload.allocations.map((allocation) => ({
+        tenantId: tenantObjectId,
         timeEntry: entry._id,
-        project: allocation.projectId,
+        project: allocation.projectId ? new Types.ObjectId(allocation.projectId) : undefined,
         description: allocation.description ?? undefined,
         hours: allocation.hours,
       }));
       await TimeEntryAllocationModel.insertMany(docs);
     }
 
-    return fetchEntryWithAllocations(entry.id);
+    return fetchEntryWithAllocations(tenantId, entry.id);
   },
 
-  async updateEntry(id: string, payload: TimeEntryUpdateInput) {
-    const entry = await TimeEntryModel.findById(id);
+  async updateEntry(tenantId: string, id: string, payload: TimeEntryUpdateInput) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    const entry = await TimeEntryModel.findOne({ _id: id, tenantId: tenantObjectId });
     if (!entry) {
       throw new HttpException(404, "Time entry not found");
     }
 
     if (payload.userId) {
-      await ensureUserExists(payload.userId);
+      await ensureUserExists(tenantId, payload.userId);
       entry.user = new Types.ObjectId(payload.userId);
     }
 
@@ -448,13 +499,17 @@ export const timeEntryService = {
     await entry.save();
 
     if (payload.allocations !== undefined) {
-      await ensureProjectsExist(payload.allocations);
-      await TimeEntryAllocationModel.deleteMany({ timeEntry: entry._id });
+      await ensureProjectsExist(tenantId, payload.allocations);
+      await TimeEntryAllocationModel.deleteMany({
+        tenantId: tenantObjectId,
+        timeEntry: entry._id,
+      });
 
       if (payload.allocations.length > 0) {
         const docs = payload.allocations.map((allocation) => ({
+          tenantId: tenantObjectId,
           timeEntry: entry._id,
-          project: allocation.projectId,
+          project: allocation.projectId ? new Types.ObjectId(allocation.projectId) : undefined,
           description: allocation.description ?? undefined,
           hours: allocation.hours,
         }));
@@ -462,14 +517,17 @@ export const timeEntryService = {
       }
     }
 
-    return fetchEntryWithAllocations(entry.id);
+    return fetchEntryWithAllocations(tenantId, entry.id);
   },
 
-  async deleteEntry(id: string) {
-    const entry = await TimeEntryModel.findByIdAndDelete(id);
+  async deleteEntry(tenantId: string, id: string) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    const entry = await TimeEntryModel.findOneAndDelete({ _id: id, tenantId: tenantObjectId });
     if (!entry) {
       throw new HttpException(404, "Time entry not found");
     }
-    await TimeEntryAllocationModel.deleteMany({ timeEntry: entry._id });
+    await TimeEntryAllocationModel.deleteMany({ tenantId: tenantObjectId, timeEntry: entry._id });
   },
 };

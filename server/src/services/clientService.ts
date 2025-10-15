@@ -5,6 +5,16 @@ import { HttpException } from "../utils/httpException";
 const toISOString = (value?: Date | string | null) =>
   value ? new Date(value).toISOString() : undefined;
 
+const toObjectId = (value: unknown): Types.ObjectId => {
+  if (value instanceof Types.ObjectId) {
+    return value;
+  }
+  if (typeof value === "string" && Types.ObjectId.isValid(value)) {
+    return new Types.ObjectId(value);
+  }
+  return new Types.ObjectId(String(value));
+};
+
 /** Tipos auxiliares */
 interface ProjectMemberLean {
   _id: Types.ObjectId;
@@ -34,13 +44,13 @@ export const clientService = {
       return [];
     }
 
-    const clientIds = clients.map((client) => client._id);
+    const clientIds = clients.map((client) => toObjectId(client._id));
 
     const projects = await ProjectModel.find({
       tenantId,
       client: { $in: clientIds },
     }).lean();
-    const projectIds = projects.map((project) => project._id);
+    const projectIds = projects.map((project) => toObjectId(project._id));
 
     const members = await ProjectMemberModel.find({
       tenantId,
@@ -59,11 +69,12 @@ export const clientService = {
 
     return clients.map((client) => {
       const clientProjects = projects.filter(
-        (project) => project.client.toString() === client._id.toString()
+        (project) => toObjectId(project.client).toString() === toObjectId(client._id).toString()
       );
 
       const formattedProjects = clientProjects.map((project) => {
-        const projectMembers = membersByProject.get(project._id.toString()) ?? [];
+        const projectMembers =
+          membersByProject.get(toObjectId(project._id).toString()) ?? [];
 
         const team: TeamMemberDTO[] = projectMembers
           .filter((member) => !member.endDate)
@@ -94,7 +105,7 @@ export const clientService = {
         const leader = team.find((member) => member.isLeader) ?? null;
 
         return {
-          id: project._id.toString(),
+          id: toObjectId(project._id).toString(),
           name: project.name,
           description: project.description,
           startDate: toISOString(project.startDate),
@@ -106,7 +117,7 @@ export const clientService = {
       });
 
       return {
-        id: client._id.toString(),
+        id: toObjectId(client._id).toString(),
         name: client.name,
         cnpj: client.cnpj,
         startDate: toISOString(client.startDate),

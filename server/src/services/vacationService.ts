@@ -10,6 +10,12 @@ import {
 import { UserModel } from "../models/User";
 import { HttpException } from "../utils/httpException";
 
+const validateTenant = (tenantId: string) => {
+  if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+    throw new HttpException(400, "Invalid tenant context");
+  }
+};
+
 // ==================== Tipos Auxiliares (Lean) ====================
 type VacationPeriodLean = {
   _id: Types.ObjectId;
@@ -61,23 +67,28 @@ function getId(ref: unknown): string {
   return "";
 }
 
-async function ensureUserExists(userId: string): Promise<void> {
+async function ensureUserExists(tenantId: string, userId: string): Promise<void> {
+  validateTenant(tenantId);
   if (!Types.ObjectId.isValid(userId)) {
     throw new HttpException(400, "Invalid userId");
   }
-  const exists = await UserModel.exists({ _id: userId });
+  const tenantObjectId = new Types.ObjectId(tenantId);
+  const exists = await UserModel.exists({ _id: userId, tenantId: tenantObjectId });
   if (!exists) {
     throw new HttpException(404, "User not found");
   }
 }
 
 async function ensureVacationPeriodExists(
+  tenantId: string,
   periodId: string,
 ): Promise<VacationPeriodDoc> {
+  validateTenant(tenantId);
   if (!Types.ObjectId.isValid(periodId)) {
     throw new HttpException(400, "Invalid vacation period ID");
   }
-  const period = await VacationPeriodModel.findById(periodId);
+  const tenantObjectId = new Types.ObjectId(tenantId);
+  const period = await VacationPeriodModel.findOne({ _id: periodId, tenantId: tenantObjectId });
   if (!period) {
     throw new HttpException(404, "Vacation period not found");
   }
@@ -121,17 +132,19 @@ function formatVacationRequest(
 // ==================== Serviço ====================
 export const vacationService = {
   // ----- Períodos de Férias -----
-  async listPeriods(filters: {
-    userId?: string;
-    startDate?: string;
-    endDate?: string;
-  } = {}) {
-    const query: FilterQuery<VacationPeriodDoc> = {};
+  async listPeriods(
+    tenantId: string,
+    filters: { userId?: string; startDate?: string; endDate?: string } = {}
+  ) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const query: FilterQuery<VacationPeriodDoc> = { tenantId: tenantObjectId };
 
     if (filters.userId) {
       if (!Types.ObjectId.isValid(filters.userId)) {
         throw new HttpException(400, "Invalid userId filter");
       }
+      await ensureUserExists(tenantId, filters.userId);
       query.user = new Types.ObjectId(filters.userId);
     }
 
@@ -151,7 +164,11 @@ export const vacationService = {
     }
 
     const periods = await VacationPeriodModel.find(query)
-      .populate("user", "name email")
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { tenantId: tenantObjectId },
+      })
       .sort({ startDate: -1 })
       .lean<VacationPeriodLean[]>();
 
@@ -168,9 +185,13 @@ export const vacationService = {
     }));
   },
 
-  async getPeriodById(id: string) {
-    const period = await ensureVacationPeriodExists(id);
-    await period.populate("user", "name email");
+  async getPeriodById(tenantId: string, id: string) {
+    const period = await ensureVacationPeriodExists(tenantId, id);
+    await period.populate({
+      path: "user",
+      select: "name email",
+      match: { tenantId: new Types.ObjectId(tenantId) },
+    });
 
     const populated = period.toObject() as VacationPeriodLean;
     return {
@@ -188,14 +209,19 @@ export const vacationService = {
     };
   },
 
-  async createPeriod(input: {
-    userId: string;
-    startDate: string;
-    endDate: string;
-    daysAvailable: number;
-    contractType?: string;
-  }) {
-    await ensureUserExists(input.userId);
+  async createPeriod(
+    tenantId: string,
+    input: {
+      userId: string;
+      startDate: string;
+      endDate: string;
+      daysAvailable: number;
+      contractType?: string;
+    }
+  ) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    await ensureUserExists(tenantId, input.userId);
 
     const startDate = parseDate(input.startDate);
     const endDate = parseDate(input.endDate);
@@ -208,6 +234,7 @@ export const vacationService = {
     }
 
     const overlapping = await VacationPeriodModel.findOne({
+      tenantId: tenantObjectId,
       user: input.userId,
       $or: [{ startDate: { $lte: endDate }, endDate: { $gte: startDate } }],
     });
@@ -219,6 +246,7 @@ export const vacationService = {
     }
 
     const period = await VacationPeriodModel.create({
+      tenantId: tenantObjectId,
       user: input.userId,
       startDate,
       endDate,
@@ -226,10 +254,11 @@ export const vacationService = {
       contractType: input.contractType || "CLT",
     });
 
-    return this.getPeriodById(period.id);
-    },
+    return this.getPeriodById(tenantId, period.id);
+  },
 
   async updatePeriod(
+    tenantId: string,
     id: string,
     input: Partial<{
       userId: string;
@@ -237,12 +266,13 @@ export const vacationService = {
       endDate: string;
       daysAvailable: number;
       contractType?: string;
-    }>,
+    }>
   ) {
-    const period = await ensureVacationPeriodExists(id);
+    validateTenant(tenantId);
+    const period = await ensureVacationPeriodExists(tenantId, id);
 
     if (input.userId) {
-      await ensureUserExists(input.userId);
+      await ensureUserExists(tenantId, input.userId);
       period.user = new Types.ObjectId(input.userId);
     }
     if (input.startDate) {
@@ -264,12 +294,15 @@ export const vacationService = {
     }
 
     await period.save();
-    return this.getPeriodById(period.id);
+    return this.getPeriodById(tenantId, period.id);
   },
 
-  async deletePeriod(id: string) {
-    const period = await ensureVacationPeriodExists(id);
+  async deletePeriod(tenantId: string, id: string) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const period = await ensureVacationPeriodExists(tenantId, id);
     const requestCount = await VacationRequestModel.countDocuments({
+      tenantId: tenantObjectId,
       vacationPeriod: period._id,
     });
     if (requestCount > 0) {
@@ -282,17 +315,23 @@ export const vacationService = {
   },
 
   // ----- Vacation Requests -----
-  async listRequests(filters: {
-    userId?: string;
-    status?: VacationRequestStatus;
-    vacationPeriodId?: string;
-  } = {}) {
-    const query: FilterQuery<VacationRequestDoc> = {};
+  async listRequests(
+    tenantId: string,
+    filters: {
+      userId?: string;
+      status?: VacationRequestStatus;
+      vacationPeriodId?: string;
+    } = {}
+  ) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const query: FilterQuery<VacationRequestDoc> = { tenantId: tenantObjectId };
 
     if (filters.userId) {
       if (!Types.ObjectId.isValid(filters.userId)) {
         throw new HttpException(400, "Invalid userId filter");
       }
+      await ensureUserExists(tenantId, filters.userId);
       query.user = new Types.ObjectId(filters.userId);
     }
     if (filters.status) query.status = filters.status;
@@ -300,12 +339,20 @@ export const vacationService = {
       if (!Types.ObjectId.isValid(filters.vacationPeriodId)) {
         throw new HttpException(400, "Invalid vacationPeriodId filter");
       }
+      await ensureVacationPeriodExists(tenantId, filters.vacationPeriodId);
       query.vacationPeriod = new Types.ObjectId(filters.vacationPeriodId);
     }
 
     const requests = await VacationRequestModel.find(query)
-      .populate("user", "name email")
-      .populate("vacationPeriod")
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { tenantId: tenantObjectId },
+      })
+      .populate({
+        path: "vacationPeriod",
+        match: { tenantId: tenantObjectId },
+      })
       .sort({ createdAt: -1 })
       .lean<VacationRequestLean[]>();
 
@@ -327,13 +374,24 @@ export const vacationService = {
     }));
   },
 
-  async getRequestById(id: string) {
+  async getRequestById(tenantId: string, id: string) {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid vacation request ID");
     }
-    const request = await VacationRequestModel.findById(id)
-      .populate("user", "name email")
-      .populate("vacationPeriod")
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const request = await VacationRequestModel.findOne({
+      _id: id,
+      tenantId: tenantObjectId,
+    })
+      .populate({
+        path: "user",
+        select: "name email",
+        match: { tenantId: tenantObjectId },
+      })
+      .populate({
+        path: "vacationPeriod",
+        match: { tenantId: tenantObjectId },
+      })
       .lean<VacationRequestLean | null>();
 
     if (!request) {
@@ -358,22 +416,27 @@ export const vacationService = {
     };
   },
 
-  async createRequest(input: {
-    userId: string;
-    vacationPeriodId: string;
-    startDate?: string;
-    endDate?: string;
-    daysTaken: number;
-    soldDays?: number;
-    comments?: string;
-  }) {
-    await ensureUserExists(input.userId);
-    const period = await ensureVacationPeriodExists(input.vacationPeriodId);
+  async createRequest(
+    tenantId: string,
+    input: {
+      userId: string;
+      vacationPeriodId: string;
+      startDate?: string;
+      endDate?: string;
+      daysTaken: number;
+      soldDays?: number;
+      comments?: string;
+    }
+  ) {
+    validateTenant(tenantId);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    await ensureUserExists(tenantId, input.userId);
+    const period = await ensureVacationPeriodExists(tenantId, input.vacationPeriodId);
 
     if (period.user.toString() !== input.userId) {
       throw new HttpException(
         403,
-        "You can only request vacations from your own periods",
+        "You can only request vacations from your own periods"
       );
     }
 
@@ -386,6 +449,7 @@ export const vacationService = {
     const usedDays = await VacationRequestModel.aggregate([
       {
         $match: {
+          tenantId: tenantObjectId,
           vacationPeriod: period._id,
           status: {
             $in: [
@@ -413,11 +477,12 @@ export const vacationService = {
         400,
         `Insufficient vacation days. Available: ${
           period.daysAvailable - totalUsed - totalSold
-        }, Requested: ${totalRequested}`,
+        }, Requested: ${totalRequested}`
       );
     }
 
     const request = await VacationRequestModel.create({
+      tenantId: tenantObjectId,
       user: input.userId,
       vacationPeriod: input.vacationPeriodId,
       startDate,
@@ -428,10 +493,11 @@ export const vacationService = {
       comments: input.comments,
     });
 
-    return this.getRequestById(request.id);
+    return this.getRequestById(tenantId, request.id);
   },
 
   async updateRequest(
+    tenantId: string,
     id: string,
     input: Partial<{
       startDate?: string;
@@ -440,12 +506,16 @@ export const vacationService = {
       soldDays: number;
       comments?: string;
       status?: VacationRequestStatus;
-    }>,
+    }>
   ) {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid vacation request ID");
     }
-    const request = await VacationRequestModel.findById(id);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const request = await VacationRequestModel.findOne({
+      _id: id,
+      tenantId: tenantObjectId,
+    });
     if (!request) {
       throw new HttpException(404, "Vacation request not found");
     }
@@ -456,7 +526,7 @@ export const vacationService = {
     ) {
       throw new HttpException(
         400,
-        "Cannot update cancelled or rejected requests",
+        "Cannot update cancelled or rejected requests"
       );
     }
 
@@ -486,14 +556,18 @@ export const vacationService = {
     }
 
     await request.save();
-    return this.getRequestById(request.id);
+    return this.getRequestById(tenantId, request.id);
   },
 
-  async cancelRequest(id: string) {
+  async cancelRequest(tenantId: string, id: string) {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid vacation request ID");
     }
-    const request = await VacationRequestModel.findById(id);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const request = await VacationRequestModel.findOne({
+      _id: id,
+      tenantId: tenantObjectId,
+    });
     if (!request) {
       throw new HttpException(404, "Vacation request not found");
     }
@@ -503,14 +577,18 @@ export const vacationService = {
 
     request.status = VacationRequestStatus.CANCELLED;
     await request.save();
-    return this.getRequestById(request.id);
+    return this.getRequestById(tenantId, request.id);
   },
 
-  async deleteRequest(id: string) {
+  async deleteRequest(tenantId: string, id: string) {
     if (!Types.ObjectId.isValid(id)) {
       throw new HttpException(400, "Invalid vacation request ID");
     }
-    const request = await VacationRequestModel.findByIdAndDelete(id);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const request = await VacationRequestModel.findOneAndDelete({
+      _id: id,
+      tenantId: tenantObjectId,
+    });
     if (!request) {
       throw new HttpException(404, "Vacation request not found");
     }

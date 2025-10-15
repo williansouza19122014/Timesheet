@@ -1,4 +1,4 @@
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import { sign, verify, type JwtPayload, type SignOptions } from "jsonwebtoken";
 import { env } from "../config/env";
 import { HttpException } from "./httpException";
 
@@ -13,19 +13,20 @@ export interface TokenPayload {
 
 export function generateToken(payload: TokenPayload): string {
   const { userId, ...claims } = payload;
-  return jwt.sign(
-    { ...claims, userId },
-    env.JWT_SECRET,
-    {
-      subject: userId,
-      expiresIn: TOKEN_EXPIRATION,
-    }
-  );
+  const options: SignOptions = {
+    subject: userId,
+  };
+
+  if (TOKEN_EXPIRATION) {
+    options.expiresIn = TOKEN_EXPIRATION as SignOptions["expiresIn"];
+  }
+
+  return sign({ ...claims, userId }, env.JWT_SECRET, options);
 }
 
 export function verifyToken(token: string): TokenPayload {
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload & Partial<TokenPayload>;
+    const decoded = verify(token, env.JWT_SECRET) as JwtPayload & Partial<TokenPayload>;
 
     const userId =
       decoded.userId ?? (typeof decoded.sub === "string" ? decoded.sub : undefined);

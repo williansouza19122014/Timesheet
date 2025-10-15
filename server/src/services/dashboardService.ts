@@ -175,7 +175,15 @@ const buildNotifications = (activities: KanbanCardActivityDoc[], timeEntryDates:
 };
 
 export const dashboardService = {
-  async getOverview(options: OverviewOptions = {}, actor: Actor): Promise<OverviewResponse> {
+  async getOverview(
+    options: OverviewOptions = {},
+    actor: Actor,
+    tenantId: string
+  ): Promise<OverviewResponse> {
+    if (!tenantId || !Types.ObjectId.isValid(tenantId)) {
+      throw new HttpException(400, "Invalid tenant context");
+    }
+    const tenantObjectId = new Types.ObjectId(tenantId);
     const now = new Date();
     const year = options.year ?? now.getUTCFullYear();
     const month = options.month ?? now.getUTCMonth() + 1;
@@ -191,9 +199,20 @@ export const dashboardService = {
     let userIds: Types.ObjectId[] = [actorId];
 
     if (options.userId && (actor.role === UserRole.ADMIN || actor.role === UserRole.MANAGER)) {
-      userIds = [ensureObjectId(options.userId, "userId")];
+      const requestedUserId = ensureObjectId(options.userId, "userId");
+      const userExists = await UserModel.exists({
+        _id: requestedUserId,
+        tenantId: tenantObjectId,
+      });
+      if (!userExists) {
+        throw new HttpException(404, "User not found");
+      }
+      userIds = [requestedUserId];
     } else if (scope === "team" && (actor.role === UserRole.ADMIN || actor.role === UserRole.MANAGER)) {
-      const filter: FilterQuery<UserDoc> = { status: UserStatus.ACTIVE };
+      const filter: FilterQuery<UserDoc> = {
+        tenantId: tenantObjectId,
+        status: UserStatus.ACTIVE,
+      };
       if (actor.role === UserRole.MANAGER) {
         filter.$or = [{ _id: actorId }, { manager: actorId }];
       }
@@ -204,6 +223,7 @@ export const dashboardService = {
     }
 
     const entryQuery: FilterQuery<TimeEntryDoc> = {
+      tenantId: tenantObjectId,
       date: { $gte: yearStart, $lte: yearEnd },
     };
 
@@ -218,7 +238,10 @@ export const dashboardService = {
     const entries = await TimeEntryModel.find(entryQuery).lean();
     const entryIds = entries.map((entry) => entry._id);
     const allocations = entryIds.length
-      ? await TimeEntryAllocationModel.find({ timeEntry: { $in: entryIds } }).lean()
+      ? await TimeEntryAllocationModel.find({
+          tenantId: tenantObjectId,
+          timeEntry: { $in: entryIds },
+        }).lean()
       : [];
 
     const allocationMinutesByEntry = new Map<string, number>();
@@ -311,6 +334,7 @@ export const dashboardService = {
     );
 
     const vacationQuery: FilterQuery<VacationRequestDoc> = {
+      tenantId: tenantObjectId,
       status: VacationRequestStatus.APPROVED,
     };
 
@@ -353,14 +377,16 @@ export const dashboardService = {
       0
     );
 
-    const kanbanActivities = await KanbanCardActivityModel.find(
-      scope === "team" && (actor.role === UserRole.ADMIN || actor.role === UserRole.MANAGER)
-        ? { createdAt: { $gte: monthStart, $lte: monthEnd } }
-        : {
-            createdAt: { $gte: monthStart, $lte: monthEnd },
-            user: { $in: userIds },
-          }
-    )
+    const kanbanQuery: FilterQuery<KanbanCardActivityDoc> = {
+      tenantId: tenantObjectId,
+      createdAt: { $gte: monthStart, $lte: monthEnd },
+    };
+
+    if (!(scope === "team" && (actor.role === UserRole.ADMIN || actor.role === UserRole.MANAGER))) {
+      kanbanQuery.user = { $in: userIds };
+    }
+
+    const kanbanActivities = await KanbanCardActivityModel.find(kanbanQuery)
       .sort({ createdAt: -1 })
       .limit(10)
       .lean<KanbanCardActivityDoc[]>();

@@ -30,8 +30,13 @@ roleSchema.index({ tenantId: 1, name: 1 }, { unique: true });
 roleSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret) => {
-    ret.id = ret._id.toString();
+  transform: (_doc, ret: any) => {
+    const rawId = ret._id;
+    if (typeof rawId === "string") {
+      ret.id = rawId;
+    } else if (rawId && typeof rawId.toString === "function") {
+      ret.id = rawId.toString();
+    }
     delete ret._id;
     if (Array.isArray(ret.permissions)) {
       ret.permissions = [...new Set(ret.permissions)];

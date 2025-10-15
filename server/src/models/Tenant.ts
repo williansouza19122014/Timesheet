@@ -24,8 +24,13 @@ const tenantSchema = new Schema<TenantDoc>(
 tenantSchema.set("toJSON", {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret) => {
-    ret.id = ret._id.toString();
+  transform: (_doc, ret: any) => {
+    const rawId = ret._id;
+    if (typeof rawId === "string") {
+      ret.id = rawId;
+    } else if (rawId && typeof rawId.toString === "function") {
+      ret.id = rawId.toString();
+    }
     delete ret._id;
   },
 });

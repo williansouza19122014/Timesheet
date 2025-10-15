@@ -45,39 +45,43 @@ const userWorkloadQuerySchema = z.object({
   endDate: z.string().optional(),
 });
 
-const getActor = (req: AuthenticatedRequest) => {
+const getContext = (req: AuthenticatedRequest) => {
+  const tenantId = req.tenantId;
+  if (!tenantId) {
+    throw new HttpException(403, "Tenant context missing");
+  }
   if (!req.userId || !req.userRole) {
     throw new HttpException(401, "Unauthorized");
   }
-  return { id: req.userId, role: req.userRole as UserRole };
+  return { tenantId, actor: { id: req.userId, role: req.userRole as UserRole } };
 };
 
 export const reportController = {
   async timeSummary(req: AuthenticatedRequest, res: Response) {
     const filters = timeSummaryQuerySchema.parse(req.query);
-    const actor = getActor(req);
-    const result = await reportService.getTimeSummary(filters, actor);
+    const { tenantId, actor } = getContext(req);
+    const result = await reportService.getTimeSummary(tenantId, filters, actor);
     return res.json(result);
   },
 
   async projectPerformance(req: AuthenticatedRequest, res: Response) {
     const filters = projectPerformanceQuerySchema.parse(req.query);
-    const actor = getActor(req);
-    const result = await reportService.getProjectPerformance(filters, actor);
+    const { tenantId, actor } = getContext(req);
+    const result = await reportService.getProjectPerformance(tenantId, filters, actor);
     return res.json(result);
   },
 
   async vacationSummary(req: AuthenticatedRequest, res: Response) {
     const filters = vacationSummaryQuerySchema.parse(req.query);
-    const actor = getActor(req);
-    const result = await reportService.getVacationSummary(filters, actor);
+    const { tenantId, actor } = getContext(req);
+    const result = await reportService.getVacationSummary(tenantId, filters, actor);
     return res.json(result);
   },
 
   async userWorkload(req: AuthenticatedRequest, res: Response) {
     const filters = userWorkloadQuerySchema.parse(req.query);
-    const actor = getActor(req);
-    const result = await reportService.getUserWorkload(filters, actor);
+    const { tenantId, actor } = getContext(req);
+    const result = await reportService.getUserWorkload(tenantId, filters, actor);
     return res.json(result);
   },
 };

@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserForm from "@/components/users/UserForm";
 import UserCard from "@/components/users/UserCard";
 import { SystemUser } from "@/types/users";
+import { usePermission } from "@/hooks/usePermission";
+import Forbidden from "@/components/auth/Forbidden";
 
 const USERS_STORAGE_KEY = "tempEmployees";
 
@@ -23,6 +24,12 @@ const Users = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
   const { toast } = useToast();
+  const { isAllowed: canViewUsers, hasPermission, isMaster } = usePermission("users.list");
+  const canManageUsers =
+    isMaster ||
+    hasPermission("users.create") ||
+    hasPermission("users.update") ||
+    hasPermission("users.delete");
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -47,23 +54,29 @@ const Users = () => {
     setShowForm(true);
   };
 
+  if (!canViewUsers && !isMaster) {
+    return <Forbidden />;
+  }
+
   return (
     <div className="animate-fade-in">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-4xl font-bold">Usuários do Sistema</h1>
-        <button
-          onClick={() => {
-            setEditingUser(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-white transition-colors hover:bg-accent/90"
-        >
-          <Plus className="h-5 w-5" />
-          Novo Usuário
-        </button>
+        {canManageUsers && (
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-white transition-colors hover:bg-accent/90"
+          >
+            <Plus className="h-5 w-5" />
+            Novo Usuário
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && canManageUsers && (
         <UserForm
           onClose={() => {
             setShowForm(false);
@@ -76,7 +89,7 @@ const Users = () => {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {users.map((user) => (
-          <UserCard key={user.id} user={user} onEdit={handleEdit} />
+          <UserCard key={user.id} user={user} onEdit={canManageUsers ? handleEdit : undefined} />
         ))}
       </div>
     </div>

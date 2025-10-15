@@ -1,12 +1,34 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useAccessControl } from "@/context/access-control-context";
+import { useAccessControl, type FeatureKey } from "@/context/access-control-context";
+import { usePermission } from "@/hooks/usePermission";
+import Forbidden from "./Forbidden";
+
+const FEATURE_PERMISSION_MAP: Partial<Record<FeatureKey, string>> = {
+  clients: "clients.view",
+  reports: "reports.view",
+  users: "users.list",
+  settings: "tenant.manage",
+  team: "projects.members.manage",
+  timesheet: "projects.view",
+  vacations: "vacations.view",
+};
+
+const ROUTE_PERMISSIONS: Record<string, string> = {
+  "/clientes": "clients.view",
+  "/relatorios": "reports.view",
+  "/users": "users.list",
+  "/admin/users": "users.list",
+  "/admin/roles": "roles.list",
+  "/admin/tenant": "tenant.manage",
+};
 
 const PrivateRoute = () => {
   const location = useLocation();
   const { user, loading, isAuthenticated } = useAuth();
   const { canAccess, features } = useAccessControl();
+  const { hasPermission, isMaster } = usePermission();
 
   if (loading) {
     return (
@@ -21,17 +43,18 @@ const PrivateRoute = () => {
   }
 
   const feature = features.find((item) => item.path === location.pathname);
+  const featurePermission = feature?.key ? FEATURE_PERMISSION_MAP[feature.key] : undefined;
+  const explicitPermission = Object.entries(ROUTE_PERMISSIONS).find(([path]) =>
+    location.pathname.startsWith(path)
+  )?.[1];
+
   if (feature && !canAccess(feature.key)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="space-y-4 text-center">
-          <h1 className="text-2xl font-semibold text-destructive">Acesso negado</h1>
-          <p className="text-sm text-muted-foreground">
-            Peça a um administrador para revisar suas permissões.
-          </p>
-        </div>
-      </div>
-    );
+    return <Forbidden />;
+  }
+
+  const requiredPermission = explicitPermission ?? featurePermission;
+  if (requiredPermission && !hasPermission(requiredPermission) && !isMaster) {
+    return <Forbidden />;
   }
 
   return <Outlet />;

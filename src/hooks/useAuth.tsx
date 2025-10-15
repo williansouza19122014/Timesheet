@@ -21,9 +21,14 @@ const USER_STORAGE_KEY = "auth_user";
 
 type AuthContextType = {
   user: (AuthUser & { roleLabel: Role }) | null;
+  token: string | null;
+  tenantId: string | null;
+  permissions: string[];
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isMaster: boolean;
+  hasPermission: (permission: string) => boolean;
   login: (credentials: { email: string; password: string }) => Promise<void>;
   register: (payload: { name: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
@@ -32,9 +37,14 @@ type AuthContextType = {
 
 const defaultContext: AuthContextType = {
   user: null,
+  token: null,
+  tenantId: null,
+  permissions: [],
   loading: true,
   isAuthenticated: false,
   isAdmin: false,
+  isMaster: false,
+  hasPermission: () => false,
   login: async () => undefined,
   register: async () => undefined,
   logout: () => undefined,
@@ -75,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { setActiveRole } = useAccessControl();
   const [user, setUser] = useState<(AuthUser & { roleLabel: Role }) | null>(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
 
   const applyUser = useCallback(
     (nextUser: AuthUser | null) => {
@@ -99,10 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetchProfile();
+      window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
       applyUser(response.user);
     } catch (error) {
       console.error("Failed to refresh authenticated user", error);
       clearAuth();
+      setToken(null);
       applyUser(null);
     }
   }, [applyUser]);
@@ -113,51 +126,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const parsed = JSON.parse(storedUserRaw) as AuthUser;
         applyUser(parsed);
+        setToken(getStoredToken());
       } catch {
         clearAuth();
+        setToken(null);
       }
     }
 
     refreshUser().finally(() => setLoading(false));
   }, [applyUser, refreshUser]);
 
-  const login = useCallback(
-    async (credentials: { email: string; password: string }) => {
-      const result = await loginRequest(credentials);
-      saveAuth(result.token, result.user);
-      applyUser(result.user);
+  const persistAuth = useCallback(
+    (nextToken: string, nextUser: AuthUser) => {
+      saveAuth(nextToken, nextUser);
+      setToken(nextToken);
+      applyUser(nextUser);
     },
     [applyUser]
   );
 
+  const login = useCallback(
+    async (credentials: { email: string; password: string }) => {
+      const result = await loginRequest(credentials);
+      persistAuth(result.token, result.user);
+    },
+    [persistAuth]
+  );
+
   const register = useCallback(
     async (payload: { name: string; email: string; password: string }) => {
-      await registerRequest({
+      const result = await registerRequest({
         name: payload.name,
         email: payload.email,
         password: payload.password,
       });
+      persistAuth(result.token, result.user);
     },
-    []
+    [persistAuth]
   );
 
   const logout = useCallback(() => {
     clearAuth();
+    setToken(null);
     applyUser(null);
   }, [applyUser]);
+
+  const permissions = user?.permissions ?? [];
+
+  const hasPermission = useCallback(
+    (permission: string) => {
+      if (!permission) return false;
+      if (!permissions.length) return false;
+      if (permissions.includes("*")) return true;
+      return permissions.includes(permission);
+    },
+    [permissions]
+  );
 
   const value = useMemo<AuthContextType>(
     () => ({
       user,
+      token,
+      tenantId: user?.tenantId ?? null,
+      permissions,
       loading,
-      isAuthenticated: Boolean(user),
-      isAdmin: user?.role === "ADMIN",
+      isAuthenticated: Boolean(user && token),
+      isAdmin: hasPermission("*") || user?.role === "ADMIN",
+      isMaster: Boolean(user?.isMaster || hasPermission("*")),
+      hasPermission,
       login,
       register,
       logout,
       refreshUser,
     }),
-    [user, loading, login, register, logout, refreshUser]
+    [user, token, permissions, loading, hasPermission, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
