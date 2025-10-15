@@ -16,7 +16,17 @@ function resolveBaseUrl(): string {
   }
 
   if (typeof window !== "undefined") {
-    return normalizeBaseUrl(window.location.origin);
+    const origin = normalizeBaseUrl(window.location.origin);
+
+    // Ambiente local: o backend roda normalmente na porta 3000 enquanto o Vite usa 5173.
+    if (typeof window !== "undefined" && window.location.host.includes("localhost")) {
+      const port = window.location.port;
+      if (port === "5173" || port === "4173") {
+        return "http://localhost:3000";
+      }
+    }
+
+    return origin;
   }
 
   return "";
