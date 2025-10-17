@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAccessControl } from "@/context/access-control-context";
 import { Download } from "lucide-react";
 import {
   Dialog,
@@ -35,35 +36,43 @@ interface Employee {
     state: string;
     zip_code: string;
   };
-  selectedClients: string[];
-  selectedProjects: string[];
+  selectedClients?: string[];
+  selectedProjects?: string[];
+  accessRole?: string;
 }
 
 interface ReportDialogProps {
   employees: Employee[];
 }
 
+const FIELD_OPTIONS = [
+  { id: "name", label: "Nome" },
+  { id: "email", label: "Email" },
+  { id: "phone", label: "Telefone" },
+  { id: "position", label: "Cargo" },
+  { id: "department", label: "Departamento" },
+  { id: "accessRole", label: "Perfil de acesso" },
+  { id: "hire_date", label: "Data de admissao" },
+  { id: "status", label: "Status" },
+  { id: "cpf", label: "CPF" },
+  { id: "birth_date", label: "Data de nascimento" },
+  { id: "contract_type", label: "Tipo de contrato" },
+  { id: "work_start_time", label: "Horario de entrada" },
+  { id: "work_end_time", label: "Horario de saida" },
+  { id: "selectedClients", label: "Cliente" },
+  { id: "selectedProjects", label: "Projeto" },
+] as const;
+
+type FieldOption = (typeof FIELD_OPTIONS)[number];
+
 export function ReportDialog({ employees }: ReportDialogProps) {
+  const { getRoleLabel, roleDefinitions } = useAccessControl();
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
 
-  const availableFields = [
-    { id: "name", label: "Nome" },
-    { id: "email", label: "Email" },
-    { id: "phone", label: "Telefone" },
-    { id: "position", label: "Cargo" },
-    { id: "department", label: "Departamento" },
-    { id: "hire_date", label: "Data de admissao" },
-    { id: "status", label: "Status" },
-    { id: "cpf", label: "CPF" },
-    { id: "birth_date", label: "Data de nascimento" },
-    { id: "contract_type", label: "Tipo de contrato" },
-    { id: "work_start_time", label: "Horario de entrada" },
-    { id: "work_end_time", label: "Horario de saida" },
-    { id: "selectedClients", label: "Cliente" },
-    { id: "selectedProjects", label: "Projeto" },
-  ];
+  const availableFields: FieldOption[] = Array.isArray(FIELD_OPTIONS) ? FIELD_OPTIONS : [];
+  const totalAvailableFields = availableFields.length;
 
   useEffect(() => {
     if (!isOpen) {
@@ -73,7 +82,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
   }, [isOpen]);
 
   const handleSelectAll = () => {
-    if (selectedFields.length === availableFields.length) {
+    if (selectedFields.length === totalAvailableFields) {
       setSelectedFields([]);
       return;
     }
@@ -100,14 +109,22 @@ export function ReportDialog({ employees }: ReportDialogProps) {
       selectedFields.map((field) => {
         if (field === "selectedClients") {
           const clients = JSON.parse(localStorage.getItem("tempClients") || "[]");
-          return employee.selectedClients
+          const selectedClients = Array.isArray(employee.selectedClients)
+            ? employee.selectedClients
+            : [];
+
+          return selectedClients
             .map((clientId) => clients.find((client: any) => client.id === clientId)?.name || "")
             .filter(Boolean)
             .join(", ");
         }
         if (field === "selectedProjects") {
           const clients = JSON.parse(localStorage.getItem("tempClients") || "[]");
-          return employee.selectedProjects
+          const selectedProjects = Array.isArray(employee.selectedProjects)
+            ? employee.selectedProjects
+            : [];
+
+          return selectedProjects
             .map((projectId) => {
               for (const client of clients) {
                 const project = client.projects?.find((project: any) => project.id === projectId);
@@ -117,6 +134,14 @@ export function ReportDialog({ employees }: ReportDialogProps) {
             })
             .filter(Boolean)
             .join(", ");
+        }
+        if (field === "accessRole") {
+          const roleId =
+            (employee as any).accessRole ||
+            roleDefinitions.find((role) => role.id === "user")?.id ||
+            roleDefinitions[0]?.id ||
+            "";
+          return roleId ? getRoleLabel(roleId) : "";
         }
         if (field in employee) {
           const value = employee[field as keyof Employee];
@@ -157,7 +182,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl rounded-2xl border border-slate-200 bg-white/95 text-slate-900 shadow-xl dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100">
         <DialogHeader className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-          <DialogTitle className="text-lg font-semibold">Relatorio de colaboradores</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">Relatório de colaboradores</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 px-6 py-5">
           <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-900/60">
@@ -185,7 +210,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
           <div className="flex items-center space-x-2 border-b border-slate-200 pb-4 dark:border-slate-800">
             <Checkbox
               id="select-all-fields"
-              checked={selectedFields.length === availableFields.length}
+              checked={selectedFields.length === totalAvailableFields}
               onCheckedChange={handleSelectAll}
             />
             <Label htmlFor="select-all-fields" className="text-sm font-medium">
@@ -218,7 +243,7 @@ export function ReportDialog({ employees }: ReportDialogProps) {
             disabled={selectedFields.length === 0}
             className="bg-gradient-to-r from-[#7355F6] to-[#A26CFF] text-white shadow-[0_10px_24px_-18px_rgba(115,85,246,0.75)] hover:from-[#6245f2] hover:to-[#935cff] disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-700 dark:disabled:text-slate-400"
           >
-            Gerar relatorio
+            Gerar relatório
           </Button>
         </div>
       </DialogContent>

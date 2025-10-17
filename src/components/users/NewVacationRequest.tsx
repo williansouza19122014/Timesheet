@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "lucide-react";
@@ -23,6 +23,9 @@ interface NewVacationRequestProps {
   periods: VacationPeriod[];
   onSuccess: () => void;
   contractType: string;
+  defaultPeriodId?: string;
+  initialRequest?: VacationRequest | null;
+  mode?: "create" | "edit";
 }
 
 const containerSurface =
@@ -34,15 +37,67 @@ const fieldSurface =
 const subtleSurface =
   "rounded-xl border border-slate-200/60 bg-white/85 p-4 shadow-sm dark:border-white/10 dark:bg-slate-900/55";
 
-const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVacationRequestProps) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [comments, setComments] = useState("");
-  const [sellDays, setSellDays] = useState(false);
-  const [daysToSell, setDaysToSell] = useState<number>(0);
+const DEFAULT_STATE = {
+  selectedPeriod: "",
+  startDate: "",
+  endDate: "",
+  comments: "",
+  sellDays: false,
+  daysToSell: 0,
+};
+
+const NewVacationRequest = ({
+  userId,
+  periods,
+  onSuccess,
+  contractType,
+  defaultPeriodId,
+  initialRequest = null,
+  mode = "create",
+}: NewVacationRequestProps) => {
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(
+    defaultPeriodId ?? initialRequest?.period_id ?? DEFAULT_STATE.selectedPeriod
+  );
+  const [startDate, setStartDate] = useState(initialRequest?.start_date ?? DEFAULT_STATE.startDate);
+  const [endDate, setEndDate] = useState(initialRequest?.end_date ?? DEFAULT_STATE.endDate);
+  const [comments, setComments] = useState(initialRequest?.comments ?? DEFAULT_STATE.comments);
+  const [sellDays, setSellDays] = useState(Boolean(initialRequest?.sold_days ?? DEFAULT_STATE.sellDays));
+  const [daysToSell, setDaysToSell] = useState<number>(initialRequest?.sold_days ?? DEFAULT_STATE.daysToSell);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const isEditMode = mode === "edit" && Boolean(initialRequest);
+
+  useEffect(() => {
+    if (initialRequest) {
+      setSelectedPeriod(initialRequest.period_id);
+      setStartDate(initialRequest.start_date);
+      setEndDate(initialRequest.end_date);
+      setComments(initialRequest.comments ?? "");
+      setSellDays(Boolean(initialRequest.sold_days));
+      setDaysToSell(initialRequest.sold_days);
+    }
+  }, [initialRequest]);
+
+  useEffect(() => {
+    if (!initialRequest && defaultPeriodId) {
+      setSelectedPeriod(defaultPeriodId);
+    }
+  }, [defaultPeriodId, initialRequest]);
+
+  const selectedPeriodData = useMemo(
+    () => periods.find((period) => period.id === selectedPeriod),
+    [periods, selectedPeriod]
+  );
+
+  const resetForm = () => {
+    setSelectedPeriod(defaultPeriodId ?? DEFAULT_STATE.selectedPeriod);
+    setStartDate(DEFAULT_STATE.startDate);
+    setEndDate(DEFAULT_STATE.endDate);
+    setComments(DEFAULT_STATE.comments);
+    setSellDays(DEFAULT_STATE.sellDays);
+    setDaysToSell(DEFAULT_STATE.daysToSell);
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -50,8 +105,8 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
     if (!selectedPeriod) {
       toast({
         variant: "destructive",
-        title: "Selecione um período",
-        description: "Escolha o período aquisitivo desejado.",
+        title: "Selecione um periodo",
+        description: "Escolha o periodo aquisitivo desejado.",
       });
       return;
     }
@@ -60,8 +115,8 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
     if (!period) {
       toast({
         variant: "destructive",
-        title: "Período inválido",
-        description: "O período selecionado não está disponível.",
+        title: "Periodo invalido",
+        description: "O periodo selecionado nao esta disponivel.",
       });
       return;
     }
@@ -72,8 +127,8 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
       if (daysTaken <= 0) {
         toast({
           variant: "destructive",
-          title: "Datas inválidas",
-          description: "A data final deve ser posterior ou igual à data inicial.",
+          title: "Datas invalidas",
+          description: "A data final deve ser posterior ou igual a data inicial.",
         });
         return;
       }
@@ -81,11 +136,23 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
 
     const totalDaysRequested = daysTaken + (sellDays ? daysToSell : 0);
 
-    if (totalDaysRequested > period.days_available) {
+    const previousUsage =
+      isEditMode && initialRequest ? (initialRequest.days_taken ?? 0) + (initialRequest.sold_days ?? 0) : 0;
+    const availableForRequest = (() => {
+      if (!selectedPeriodData) {
+        return 0;
+      }
+      if (isEditMode && initialRequest && initialRequest.period_id === selectedPeriodData.id) {
+        return selectedPeriodData.days_available + previousUsage;
+      }
+      return selectedPeriodData.days_available;
+    })();
+
+    if (totalDaysRequested > availableForRequest) {
       toast({
         variant: "destructive",
         title: "Saldo insuficiente",
-        description: `Total de dias (${totalDaysRequested}) maior que o saldo disponível (${period.days_available}).`,
+        description: `Total de dias (${totalDaysRequested}) maior que o saldo disponivel (${availableForRequest}).`,
       });
       return;
     }
@@ -96,8 +163,72 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
         userId,
         () => createDefaultVacationEntry(userId),
         (entry) => {
+          const nextEntry = { ...entry };
+          const targetPeriodId = period.id;
+
+          if (isEditMode && initialRequest) {
+            const requestIndex = nextEntry.requests.findIndex((request) => request.id === initialRequest.id);
+            if (requestIndex === -1) {
+              return entry;
+            }
+
+            const previousTotalDays =
+              (initialRequest.days_taken ?? 0) + (initialRequest.sold_days ? initialRequest.sold_days : 0);
+            const previousPeriodIndex = nextEntry.periods.findIndex(
+              (item) => item.id === initialRequest.period_id
+            );
+
+            if (previousPeriodIndex >= 0) {
+              nextEntry.periods = nextEntry.periods.map((item, index) =>
+                index === previousPeriodIndex
+                  ? { ...item, days_available: item.days_available + previousTotalDays }
+                  : item
+              );
+            }
+
+            const newAvailable = nextEntry.periods.map((item) =>
+              item.id === targetPeriodId
+                ? {
+                    ...item,
+                    days_available: Math.max(item.days_available - totalDaysRequested, 0),
+                  }
+                : item
+            );
+
+            const updatedRequest: VacationRequest = {
+              ...initialRequest,
+              period_id: targetPeriodId,
+              start_date: startDate || period.start_date,
+              end_date: endDate || period.end_date,
+              days_taken: daysTaken,
+              comments: comments || undefined,
+              sold_days: sellDays ? daysToSell : 0,
+              status: "pending",
+              payment_date: null,
+              approved_by: undefined,
+            };
+
+            const requests = [...nextEntry.requests];
+            requests[requestIndex] = updatedRequest;
+
+            return {
+              periods: newAvailable,
+              requests,
+            };
+          }
+
+          const updatedPeriods = nextEntry.periods.map((item) =>
+            item.id === targetPeriodId
+              ? {
+                  ...item,
+                  days_available: Math.max(item.days_available - totalDaysRequested, 0),
+                }
+              : item
+          );
+
           const newRequest: VacationRequest = {
             id: crypto.randomUUID(),
+            period_id: targetPeriodId,
             start_date: startDate || period.start_date,
             end_date: endDate || period.end_date,
             days_taken: daysTaken,
@@ -106,65 +237,47 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
             sold_days: sellDays ? daysToSell : 0,
             payment_date: null,
             created_at: new Date().toISOString(),
+            approved_by: undefined,
           };
-
-          const updatedPeriods = entry.periods.map((item) =>
-            item.id === period.id
-              ? {
-                  ...item,
-                  days_available: Math.max(item.days_available - totalDaysRequested, 0),
-                }
-              : item
-          );
 
           return {
             periods: updatedPeriods,
-            requests: [newRequest, ...entry.requests],
+            requests: [newRequest, ...nextEntry.requests],
           };
         }
       );
 
       toast({
-        title: "Solicitação registrada",
-        description: `Sua solicitação de ${contractType === "PJ" ? "descanso" : "férias"} foi enviada para aprovação.`,
+        title: isEditMode ? "Solicitacao atualizada" : "Solicitacao registrada",
+        description: `Sua solicitacao de ${contractType === "PJ" ? "descanso" : "ferias"} foi enviada para aprovacao.`,
       });
 
+      resetForm();
       onSuccess();
-      setStartDate("");
-      setEndDate("");
-      setComments("");
-      setSellDays(false);
-      setDaysToSell(0);
-    } catch (error) {
-      console.error("Erro ao solicitar férias:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao solicitar férias",
-        description: error instanceof Error ? error.message : String(error),
-      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const selectedPeriodData = periods.find((p) => p.id === selectedPeriod);
+  const isSellingAllowed =
+    !sellDays || daysToSell < (selectedPeriodData?.days_available ?? Number.POSITIVE_INFINITY);
 
   return (
     <form onSubmit={handleSubmit} className={containerSurface}>
       <div className="space-y-2">
         <Label htmlFor="period" className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Período aquisitivo*
+          Periodo aquisitivo*
         </Label>
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+        <Select value={selectedPeriod} onValueChange={setSelectedPeriod} disabled={isEditMode}>
           <SelectTrigger className={fieldSurface}>
-            <SelectValue placeholder="Selecione o período" />
+            <SelectValue placeholder="Selecione o periodo" />
           </SelectTrigger>
           <SelectContent>
             {periods.map((periodOption) => (
               <SelectItem key={periodOption.id} value={periodOption.id}>
                 {format(new Date(periodOption.start_date), "dd/MM/yyyy", { locale: ptBR })} -{" "}
                 {format(new Date(periodOption.end_date), "dd/MM/yyyy", { locale: ptBR })} (
-                {periodOption.days_available} dias disponíveis)
+                {periodOption.days_available} dias disponiveis)
               </SelectItem>
             ))}
           </SelectContent>
@@ -175,10 +288,10 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
         <div className={`${subtleSurface} flex items-start justify-between gap-4`}>
           <div className="space-y-1">
             <span className="text-sm font-medium text-slate-600 dark:text-slate-200">
-              Vender dias de férias
+              Vender dias de ferias
             </span>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Ative para vender parte do saldo disponível neste período.
+              Ative para vender parte do saldo disponivel neste periodo.
             </p>
           </div>
           <Checkbox
@@ -205,13 +318,12 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
               onChange={(event) => setDaysToSell(Number(event.target.value) || 0)}
               className={fieldSurface}
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400">Máximo permitido: 10 dias.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Maximo permitido: 10 dias.</p>
           </div>
         )}
       </div>
 
-      {(!sellDays ||
-        daysToSell < (selectedPeriodData?.days_available ?? Number.POSITIVE_INFINITY)) && (
+      {isSellingAllowed && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="start_date" className="text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -250,19 +362,19 @@ const NewVacationRequest = ({ userId, periods, onSuccess, contractType }: NewVac
 
       <div className="space-y-2">
         <Label htmlFor="comments" className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Observações
+          Observacoes
         </Label>
         <Textarea
           id="comments"
           value={comments}
           onChange={(event) => setComments(event.target.value)}
-          placeholder="Adicione observações se necessário"
+          placeholder="Adicione observacoes se necessario"
           className={`${fieldSurface} min-h-[120px] resize-none text-sm`}
         />
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Enviando..." : "Solicitar férias"}
+        {isSubmitting ? "Salvando..." : isEditMode ? "Atualizar solicitacao" : "Solicitar ferias"}
       </Button>
     </form>
   );

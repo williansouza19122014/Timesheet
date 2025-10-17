@@ -22,4 +22,6 @@ export interface VacationRequest {
   sold_days: number;
   payment_date: string | null;
   created_at?: string;
+  period_id: string;
+  approved_by?: string | null;
 }

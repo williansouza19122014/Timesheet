@@ -50,7 +50,7 @@ const MonthYearSelect = ({
     >
       <div className="flex items-center gap-2">
         <Label htmlFor="view-toggle" className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Vis?o anual
+          Visão Anual
         </Label>
         <Switch id="view-toggle" checked={showAnnualView} onCheckedChange={handleViewToggle} />
       </div>
@@ -68,20 +68,30 @@ const MonthYearSelect = ({
         </SelectContent>
       </Select>
 
-      {!showAnnualView && (
-        <Select value={currentMonth?.toString() ?? ""} onValueChange={(value) => onMonthChange(parseInt(value))}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Selecione o m?s" />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map(({ value, label }) => (
-              <SelectItem key={value} value={value.toString()}>
-                {label.charAt(0).toUpperCase() + label.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      <Select
+        value={currentMonth?.toString() ?? ""}
+        disabled={showAnnualView}
+        onValueChange={(value) => {
+          if (showAnnualView) return;
+          onMonthChange(parseInt(value));
+        }}
+      >
+        <SelectTrigger
+          className={cn(
+            "w-[160px]",
+            showAnnualView && "cursor-not-allowed opacity-60 dark:opacity-70"
+          )}
+        >
+          <SelectValue placeholder="Selecione o mês" />
+        </SelectTrigger>
+        <SelectContent>
+          {months.map(({ value, label }) => (
+            <SelectItem key={value} value={value.toString()}>
+              {label.charAt(0).toUpperCase() + label.slice(1)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

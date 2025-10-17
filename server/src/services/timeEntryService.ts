@@ -4,7 +4,7 @@ import {
   TimeEntryAllocationModel,
   type TimeEntryDoc,
 } from "../models/TimeEntry";
-import { ProjectModel } from "../models/Client";
+import { ProjectModel, ProjectMemberModel } from "../models/Client";
 import { UserModel } from "../models/User";
 import { HttpException } from "../utils/httpException";
 
@@ -203,7 +203,11 @@ async function ensureUserExists(tenantId: string, userId: string) {
   }
 }
 
-async function ensureProjectsExist(tenantId: string, allocations?: AllocationPayload[]) {
+async function ensureProjectsExist(
+  tenantId: string,
+  allocations?: AllocationPayload[],
+  userId?: string
+) {
   validateTenant(tenantId);
   if (!allocations?.length) return;
 
@@ -222,6 +226,56 @@ async function ensureProjectsExist(tenantId: string, allocations?: AllocationPay
 
   if (count !== uniqueIds.length) {
     throw new HttpException(400, "One or more projects not found");
+  }
+
+  if (!userId) {
+    return;
+  }
+
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new HttpException(400, "Invalid user ID");
+  }
+
+  const user = await UserModel.findOne({
+    _id: userId,
+    tenantId: tenantObjectId,
+  })
+    .select("_id selectedProjects")
+    .lean();
+
+  if (!user) {
+    throw new HttpException(404, "User not found");
+  }
+
+  const selectedProjects = Array.isArray(user.selectedProjects)
+    ? (user.selectedProjects as unknown[])
+        .map((value) => getReferenceId(value))
+        .filter((value): value is string => Boolean(value))
+    : [];
+
+  let unauthorized: string[] = [];
+
+  if (selectedProjects.length > 0) {
+    unauthorized = uniqueIds.filter((id) => !selectedProjects.includes(id));
+  } else {
+    const projectObjectIds = uniqueIds.map((id) => new Types.ObjectId(id));
+    const memberships = await ProjectMemberModel.find({
+      tenantId: tenantObjectId,
+      project: { $in: projectObjectIds },
+      user: new Types.ObjectId(userId),
+    })
+      .select("project")
+      .lean();
+
+    const allowedProjects = new Set<string>(
+      memberships.map((membership) => membership.project.toString())
+    );
+
+    unauthorized = uniqueIds.filter((id) => !allowedProjects.has(id));
+  }
+
+  if (unauthorized.length > 0) {
+    throw new HttpException(403, "User is not allowed to allocate time to one or more projects");
   }
 }
 
@@ -391,7 +445,7 @@ export const timeEntryService = {
     const tenantObjectId = new Types.ObjectId(tenantId);
 
     await ensureUserExists(tenantId, payload.userId);
-    await ensureProjectsExist(tenantId, payload.allocations);
+    await ensureProjectsExist(tenantId, payload.allocations, payload.userId);
 
     const date = parseDate(payload.date);
     if (!date) {
@@ -499,7 +553,8 @@ export const timeEntryService = {
     await entry.save();
 
     if (payload.allocations !== undefined) {
-      await ensureProjectsExist(tenantId, payload.allocations);
+      const entryUserId = getReferenceId(entry.user);
+      await ensureProjectsExist(tenantId, payload.allocations, entryUserId);
       await TimeEntryAllocationModel.deleteMany({
         tenantId: tenantObjectId,
         timeEntry: entry._id,

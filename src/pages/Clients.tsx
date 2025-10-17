@@ -1,13 +1,6 @@
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import {
-  Briefcase,
-  FolderKanban,
-  Plus,
-  Sparkles,
-  UserCircle,
-  Users,
-} from "lucide-react";
+import { Briefcase, FolderKanban, Plus, UserCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Client, Project } from "@/types/clients";
 import { Button } from "@/components/ui/button";
@@ -72,7 +65,7 @@ const Clients = () => {
         icon: FolderKanban,
       },
       {
-        label: "Projetos concluídos",
+        label: "Projetos concluidos",
         value: completedProjects,
         helper: `${completedProjects} entregas finalizadas`,
         icon: Briefcase,
@@ -82,8 +75,8 @@ const Clients = () => {
         value: activeMembers,
         helper:
           activeMembers === 1
-            ? "1 pessoa na operação"
-            : `${activeMembers} pessoas na operação`,
+            ? "1 pessoa na operacao"
+            : `${activeMembers} pessoas na operacao`,
         icon: UserCircle,
       },
     ];
@@ -188,45 +181,43 @@ const Clients = () => {
   ) => {
     toast({
       title: "Funcionalidade em desenvolvimento",
-      description: "A edição de membros de projeto ainda não esta disponível.",
+      description: "A edicao de membros de projeto ainda nao esta disponivel.",
     });
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-10 pb-14">
-      <section className="relative overflow-hidden rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/15 via-white to-white p-8 shadow-sm">
-        <div className="absolute -right-20 -top-28 h-64 w-64 rounded-full bg-accent/20 blur-3xl" aria-hidden />
-        <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-2xl space-y-4">
-            <h1 className="text-4xl font-semibold text-slate-900 sm:text-5xl">
-              Clientes & Projetos
-            </h1>
-            <p className="text-base text-slate-600">
-              Gerencie cadastros, acompanhe o andamento de projetos e visualize o envolvimento da equipe em um só lugar.
-            </p>
-          </div>
-          <Button type="button" size="lg" onClick={openCreateClientModal} className="rounded-full px-6">
-            <Plus className="h-4 w-4" />
-            Novo Cliente
-          </Button>
+    <div className="animate-fade-in space-y-6 pb-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">Clientes & Projetos</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Gerencie cadastros, acompanhe o andamento de projetos e visualize o envolvimento da equipe em um s\u00F3 lugar.
+          </p>
         </div>
-      </section>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Button type="button" onClick={openCreateClientModal} className="rounded-full px-5">
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Cliente
+        </Button>
+      </div>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.label}
-              className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md"
+              className="group flex flex-col rounded-3xl border border-slate-200/70 bg-gradient-to-b from-white/90 to-white/60 p-5 shadow-lg backdrop-blur-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-slate-800/70 dark:from-[#101827] dark:to-[#0f172a]"
             >
               <div className="flex items-center gap-4">
-                <div className="rounded-2xl bg-accent/10 p-3 text-accent">
+                <div className="rounded-2xl bg-accent/10 p-3 text-accent transition group-hover:bg-accent/20">
                   <Icon className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                  <p className="text-3xl font-semibold text-slate-900">{stat.value}</p>
-                  <p className="text-xs font-medium text-slate-400">{stat.helper}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{stat.value}</p>
+                  <p className="text-xs font-medium text-slate-400 dark:text-slate-500">{stat.helper}</p>
                 </div>
               </div>
             </div>
@@ -243,14 +234,13 @@ const Clients = () => {
             startDate: editingClient?.startDate ?? new Date().toISOString().split("T")[0],
             endDate: editingClient?.endDate ?? "",
           }}
-
           submitting={submittingClient}
           onSubmit={handleClientSubmit}
           onCancel={closeClientModal}
         />
       )}
 
-      <div className="grid gap-6">
+      <div className="space-y-5">
         {clients.map((client) => (
           <ClientCard
             key={client.id}
@@ -269,16 +259,16 @@ const Clients = () => {
         ))}
 
         {!clients.length && !loading && !showNewClientForm && (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white/70 py-16 text-center shadow-sm">
+          <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-slate-300 bg-white/80 py-16 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
             <div className="rounded-full bg-accent/10 p-4 text-accent">
               <FolderKanban className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                 Comece cadastrando seu primeiro cliente
               </h2>
-              <p className="mx-auto max-w-md text-sm text-slate-500">
-                Organize clientes, projetos e equipes com uma visão unificada. Clique em �Novo Cliente� para iniciar o controle.
+              <p className="mx-auto max-w-md text-sm text-slate-500 dark:text-slate-400">
+                Organize clientes, projetos e equipes com uma vis\u00E3o unificada. Clique em \"Novo Cliente\" para iniciar o controle.
               </p>
             </div>
             <Button type="button" onClick={openCreateClientModal} className="rounded-full px-5">

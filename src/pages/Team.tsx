@@ -1,44 +1,58 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Users, UserPlus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ROLE_LABELS, type Role } from "@/context/access-control-context";
+import { useAccessControl } from "@/context/access-control-context";
 import { cn } from "@/lib/utils";
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: string;
 }
 
 interface NewUser {
   name: string;
   email: string;
   password: string;
-  role: Role;
+  role: string;
 }
 
-const ROLE_BADGE_STYLES: Record<Role, string> = {
+const ROLE_BADGE_STYLES: Record<string, string> = {
   admin: "bg-accent/10 text-accent",
   leader: "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300",
   user: "bg-success/10 text-success",
 };
 
+const getRoleBadgeStyle = (role: string) =>
+  ROLE_BADGE_STYLES[role] ?? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200";
+
 const Team = () => {
-  const [users, setUsers] = useState<User[]>([
-    { id: "1", name: "Administrador", email: "admin@demo.com", role: "admin" },
-    { id: "2", name: "Líder Operacional", email: "lider@demo.com", role: "leader" },
-    { id: "3", name: "Usuário Teste", email: "usuario@demo.com", role: "user" },
+  const { roleDefinitions, getRoleLabel } = useAccessControl();
+  const fallbackRole = roleDefinitions[0]?.id ?? "user";
+  const defaultRole =
+    roleDefinitions.find((role) => role.id === "user")?.id ??
+    roleDefinitions.find((role) => role.id === "leader")?.id ??
+    fallbackRole;
+
+  const [users, setUsers] = useState<User[]>(() => [
+    { id: "1", name: "Administrador", email: "admin@demo.com", role: roleDefinitions.find((role) => role.id === "admin")?.id ?? fallbackRole },
+    { id: "2", name: "Lider Operacional", email: "lider@demo.com", role: roleDefinitions.find((role) => role.id === "leader")?.id ?? fallbackRole },
+    { id: "3", name: "Usuario Teste", email: "usuario@demo.com", role: defaultRole },
   ]);
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [newUser, setNewUser] = useState<NewUser>({
     name: "",
     email: "",
     password: "",
-    role: "user",
+    role: defaultRole,
   });
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setNewUser((previous) => ({ ...previous, role: defaultRole }));
+  }, [defaultRole]);
 
   const handleAddUser = (event: React.FormEvent) => {
     event.preventDefault();
@@ -50,14 +64,23 @@ const Team = () => {
     };
 
     setUsers((previous) => [...previous, userToAdd]);
-    setNewUser({ name: "", email: "", password: "", role: "user" });
+    setNewUser({ name: "", email: "", password: "", role: defaultRole });
     setShowNewUserForm(false);
 
     toast({
       title: "Perfil criado",
-      description: "O colaborador já pode acessar o sistema com as novas permissões.",
+      description: "O colaborador ja pode acessar o sistema com as novas permissoes.",
     });
   };
+
+  const roleOptions = useMemo(
+    () =>
+      roleDefinitions.map((role) => ({
+        id: role.id,
+        name: role.name,
+      })),
+    [roleDefinitions]
+  );
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -93,7 +116,7 @@ const Team = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email/Usuário</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Email/Usuario</label>
                   <input
                     type="email"
                     value={newUser.email}
@@ -103,7 +126,7 @@ const Team = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Senha provisória</label>
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Senha provisoria</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -125,13 +148,15 @@ const Team = () => {
                   <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Perfil</label>
                   <select
                     value={newUser.role}
-                    onChange={(event) => setNewUser({ ...newUser, role: event.target.value as Role })}
+                    onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 dark:border-slate-700 dark:bg-slate-900"
                     required
                   >
-                    <option value="user">{ROLE_LABELS.user}</option>
-                    <option value="leader">{ROLE_LABELS.leader}</option>
-                    <option value="admin">{ROLE_LABELS.admin}</option>
+                    {roleOptions.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -139,7 +164,7 @@ const Team = () => {
                 <button
                   type="button"
                   onClick={() => setShowNewUserForm(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm	font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
                 >
                   Cancelar
                 </button>
@@ -165,7 +190,7 @@ const Team = () => {
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Perfil</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
+                  <th className="px-4 py-3 text-right">Acoes</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,8 +199,8 @@ const Team = () => {
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{user.name}</td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{user.email}</td>
                     <td className="px-4 py-3">
-                      <span className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold", ROLE_BADGE_STYLES[user.role])}>
-                        {ROLE_LABELS[user.role]}
+                      <span className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold", getRoleBadgeStyle(user.role))}>
+                        {getRoleLabel(user.role)}
                       </span>
                     </td>
                     <td className="px-4 py-3">

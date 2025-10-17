@@ -1,6 +1,7 @@
-ï»¿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAccessControl } from "@/context/access-control-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,12 +48,16 @@ interface Employee {
     state: string;
     zip_code: string;
   };
-  selectedClients: string[];
-  selectedProjects: string[];
+  selectedClients?: string[];
+  selectedProjects?: string[];
+  accessRole?: string;
 }
 
 const EmployeeRegistration = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const { getRoleLabel, roleDefinitions } = useAccessControl();
+  const defaultAccessRole =
+    roleDefinitions.find((role) => role.id === "user")?.id ?? roleDefinitions[0]?.id ?? "";
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -62,7 +67,15 @@ const EmployeeRegistration = () => {
   const fetchEmployees = useCallback(() => {
     try {
       const storedEmployees = JSON.parse(localStorage.getItem("tempEmployees") || "[]");
-      const sortedEmployees = storedEmployees.sort((a: Employee, b: Employee) =>
+      const parsedEmployees = Array.isArray(storedEmployees) ? storedEmployees : [];
+      const normalizedEmployees: Employee[] = parsedEmployees.map((employee: Employee) => ({
+        ...employee,
+        selectedClients: Array.isArray(employee?.selectedClients) ? employee.selectedClients : [],
+        selectedProjects: Array.isArray(employee?.selectedProjects) ? employee.selectedProjects : [],
+        accessRole: employee?.accessRole || defaultAccessRole,
+      }));
+
+      const sortedEmployees = normalizedEmployees.sort((a: Employee, b: Employee) =>
         a.name.localeCompare(b.name)
       );
       setEmployees(sortedEmployees);
@@ -100,7 +113,11 @@ const EmployeeRegistration = () => {
       return client ? client.name : "";
     };
 
-    const getProjectNames = (projectIds: string[]) => {
+    const getProjectNames = (projectIds?: string[]) => {
+      if (!Array.isArray(projectIds) || projectIds.length === 0) {
+        return "";
+      }
+
       const projectNames: string[] = [];
 
       for (const projectId of projectIds) {
@@ -124,11 +141,12 @@ const EmployeeRegistration = () => {
               <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Nome/CPF</TableHead>
               <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Contato</TableHead>
               <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Cargo/Depto</TableHead>
+              <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Perfil de acesso</TableHead>
               <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Cliente</TableHead>
               <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Projetos</TableHead>
-              <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Contrato/HorÃ¡rio</TableHead>
-              <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">EndereÃ§o</TableHead>
-              <TableHead className="whitespace-nowrap text-right text-slate-600 dark:text-slate-300">AÃ§Ãµes</TableHead>
+              <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Contrato/Horário</TableHead>
+              <TableHead className="whitespace-nowrap text-slate-600 dark:text-slate-300">Endereço</TableHead>
+              <TableHead className="whitespace-nowrap text-right text-slate-600 dark:text-slate-300">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,22 +181,29 @@ const EmployeeRegistration = () => {
                     </div>
                   </TableCell>
                   <TableCell className="align-top text-sm text-slate-600 dark:text-slate-300">
-                    {employee.selectedClients.map((clientId) => (
-                      <Fragment key={clientId}>
-                        {getClientName(clientId)}
-                        <br />
-                      </Fragment>
-                    ))}
+                    {getRoleLabel(employee.accessRole || defaultAccessRole)}
                   </TableCell>
                   <TableCell className="align-top text-sm text-slate-600 dark:text-slate-300">
-                    {getProjectNames(employee.selectedProjects) || "?"}
+                    {Array.isArray(employee.selectedClients) && employee.selectedClients.length > 0 ? (
+                      employee.selectedClients.map((clientId) => (
+                        <Fragment key={clientId}>
+                          {getClientName(clientId)}
+                          <br />
+                        </Fragment>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="align-top text-sm text-slate-600 dark:text-slate-300">
+                    {getProjectNames(employee.selectedProjects) || <span className="text-muted-foreground">-</span>}
                   </TableCell>
                   <TableCell className="align-top">
                     <div className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
                       <p>{employee.contract_type}</p>
                       <p>{employee.work_shift}</p>
                       <p>Admiss?o: {employee.hire_date}</p>
-                      {employee.termination_date && <p>SaÃ­da: {employee.termination_date}</p>}
+                      {employee.termination_date && <p>Saída: {employee.termination_date}</p>}
                     </div>
                   </TableCell>
                   <TableCell className="align-top max-w-[220px] text-sm text-slate-600 dark:text-slate-300">
@@ -312,4 +337,5 @@ const EmployeeRegistration = () => {
 };
 
 export default EmployeeRegistration;
+
 
