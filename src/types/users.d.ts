@@ -1,3 +1,13 @@
+export interface WorkScheduleDay {
+  dayOfWeek: number;
+  enabled: boolean;
+  hours: number;
+}
+
+export interface WorkSchedule {
+  days: WorkScheduleDay[];
+}
+
 
 export interface SystemUser {
   id: string;
@@ -6,6 +16,7 @@ export interface SystemUser {
   hire_date: string;
   termination_date?: string;
   status: 'active' | 'inactive';
+  accessRole: string;
   cpf?: string;
   birth_date?: string;
   phone?: string;

@@ -104,10 +104,24 @@ const addressSchema = z
   })
   .partial();
 
+const workScheduleDaySchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  enabled: z.boolean().optional(),
+  hours: z.number().min(0).max(24),
+});
+
 const workScheduleSchema = z
   .object({
-    startTime: z.string().trim().optional(),
-    endTime: z.string().trim().optional(),
+    days: z
+      .array(workScheduleDaySchema)
+      .min(1)
+      .refine(
+        (days) => {
+          const unique = new Set(days.map((day) => day.dayOfWeek));
+          return unique.size === days.length;
+        },
+        { message: "Duplicate dayOfWeek entries are not allowed" }
+      ),
   })
   .partial();
 

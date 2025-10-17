@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Client } from "@/types/clients";
 
@@ -29,14 +29,16 @@ interface Employee {
   contract_type: string;
   work_shift: string;
   address: Address;
-  selectedClients: string[];
-  selectedProjects: string[];
+  selectedClients?: string[];
+  selectedProjects?: string[];
   additional_notes?: string;
+  accessRole?: string;
 }
 
 interface Props {
   onSuccess: () => void;
   editingEmployee?: Employee | null;
+  defaultAccessRole: string;
 }
 
 interface EmployeeFormData {
@@ -56,9 +58,10 @@ interface EmployeeFormData {
   additional_notes?: string;
   selectedClients: string[];
   selectedProjects: string[];
+  accessRole: string;
 }
 
-export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
+export const useEmployeeForm = ({ onSuccess, editingEmployee, defaultAccessRole }: Props) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -85,9 +88,17 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
       zip_code: "",
     },
     additional_notes: editingEmployee?.additional_notes || "",
-    selectedClients: editingEmployee?.selectedClients || [],
-    selectedProjects: editingEmployee?.selectedProjects || []
+    selectedClients: Array.isArray(editingEmployee?.selectedClients) ? editingEmployee.selectedClients : [],
+    selectedProjects: Array.isArray(editingEmployee?.selectedProjects) ? editingEmployee.selectedProjects : [],
+    accessRole: editingEmployee?.accessRole || defaultAccessRole,
   });
+
+  useEffect(() => {
+    setFormData((previous) => ({
+      ...previous,
+      accessRole: editingEmployee?.accessRole || defaultAccessRole,
+    }));
+  }, [defaultAccessRole, editingEmployee?.accessRole]);
 
   const handleInputChange = (field: string, value: string) => {
     if (field.includes('.')) {
@@ -129,6 +140,16 @@ export const useEmployeeForm = ({ onSuccess, editingEmployee }: Props) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.accessRole) {
+      toast({
+        variant: "destructive",
+        title: "Perfil de acesso obrigatorio",
+        description: "Selecione um perfil de acesso para o colaborador.",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {

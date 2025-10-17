@@ -2,6 +2,7 @@ import { Types, type FilterQuery } from "mongoose";
 import { TimeEntryModel, TimeEntryAllocationModel, type TimeEntryDoc } from "../models/TimeEntry";
 import { VacationRequestModel, VacationRequestStatus, type VacationRequestDoc } from "../models/Vacation";
 import { UserModel, UserRole, UserStatus, type UserDoc } from "../models/User";
+import { HolidayModel } from "../models/Holiday";
 import type { KanbanCardActivityDoc } from "../models/Kanban";
 import { KanbanCardActivityModel } from "../models/Kanban";
 import { HttpException } from "../utils/httpException";
@@ -69,7 +70,7 @@ type OverviewResponse = {
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const MINUTES_IN_HOUR = 60;
-const DAILY_CAPACITY_HOURS = 8;
+const DEFAULT_WEEKLY_CAPACITY = [0, 8, 8, 8, 8, 8, 0] as const;
 
 const ensureObjectId = (value: string, label: string) => {
   if (!Types.ObjectId.isValid(value)) {
@@ -101,6 +102,59 @@ const calculatePairMinutes = (start?: string | null, end?: string | null) => {
   return Math.max(endTotal - startTotal, 0);
 };
 
+const cloneDefaultWeeklyCapacity = (): number[] => Array.from(DEFAULT_WEEKLY_CAPACITY);
+
+const calculateHoursFromRange = (start?: string | null, end?: string | null): number | null => {
+  if (!start || !end) return null;
+  const [startHours, startMinutes] = start.split(":").map(Number);
+  const [endHours, endMinutes] = end.split(":").map(Number);
+  if ([startHours, startMinutes, endHours, endMinutes].some((value) => Number.isNaN(value))) {
+    return null;
+  }
+  const diff = endHours * 60 + endMinutes - (startHours * 60 + startMinutes);
+  if (diff <= 0) return null;
+  return Math.round((diff / 60) * 100) / 100;
+};
+
+type WorkScheduleLike =
+  | {
+      days?: Array<{ dayOfWeek?: number; enabled?: boolean; hours?: number }>;
+      startTime?: string;
+      endTime?: string;
+    }
+  | null
+  | undefined;
+
+const resolveWeeklyCapacity = (schedule: WorkScheduleLike): number[] => {
+  const weekly = cloneDefaultWeeklyCapacity();
+  if (!schedule) {
+    return weekly;
+  }
+
+  if (Array.isArray(schedule.days) && schedule.days.length > 0) {
+    schedule.days.forEach((day) => {
+      if (day == null) return;
+      const dayOfWeek = typeof day.dayOfWeek === "number" ? day.dayOfWeek : Number(day.dayOfWeek);
+      if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) return;
+      const enabled = day.enabled !== undefined ? Boolean(day.enabled) : true;
+      const rawHours =
+        typeof day.hours === "number" ? day.hours : Number(day.hours ?? weekly[dayOfWeek]);
+      const hours = enabled ? Math.max(0, Math.min(24, Math.round(rawHours * 100) / 100)) : 0;
+      weekly[dayOfWeek] = hours;
+    });
+    return weekly;
+  }
+
+  const legacyHours = calculateHoursFromRange(schedule.startTime, schedule.endTime);
+  if (legacyHours !== null) {
+    return weekly.map((hours, dayIndex) => (hours > 0 ? legacyHours : 0));
+  }
+
+  return weekly;
+};
+
+const formatIsoDate = (date: Date): string => date.toISOString().split("T")[0];
+
 const computeEntryMinutes = (entry: Pick<TimeEntryDoc, "totalHoras" | "entrada1" | "saida1" | "entrada2" | "saida2" | "entrada3" | "saida3">) => {
   if (entry.totalHoras) {
     const minutes = parseTimeStringToMinutes(entry.totalHoras);
@@ -113,30 +167,6 @@ const computeEntryMinutes = (entry: Pick<TimeEntryDoc, "totalHoras" | "entrada1"
     calculatePairMinutes(entry.entrada2, entry.saida2) +
     calculatePairMinutes(entry.entrada3, entry.saida3)
   );
-};
-
-const getWorkingDaysInMonth = (year: number, monthIndex: number) => {
-  const date = new Date(Date.UTC(year, monthIndex, 1));
-  let workingDays = 0;
-  while (date.getUTCMonth() === monthIndex) {
-    const weekDay = date.getUTCDay();
-    if (weekDay !== 0 && weekDay !== 6) {
-      workingDays += 1;
-    }
-    date.setUTCDate(date.getUTCDate() + 1);
-  }
-  return workingDays;
-};
-
-const calculateOverlapHours = (start: Date, end: Date, rangeStart: Date, rangeEnd: Date) => {
-  const effectiveStart = start > rangeStart ? start : rangeStart;
-  const effectiveEnd = end < rangeEnd ? end : rangeEnd;
-  if (effectiveEnd < effectiveStart) {
-    return 0;
-  }
-  const diffMs = effectiveEnd.getTime() - effectiveStart.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-  return diffDays * DAILY_CAPACITY_HOURS;
 };
 
 const buildNotifications = (activities: KanbanCardActivityDoc[], timeEntryDates: Array<{ id: string; date: Date }>) => {
@@ -235,6 +265,70 @@ export const dashboardService = {
       entryQuery.user = { $in: userIds };
     }
 
+    const usersWithSchedule = await UserModel.find({
+      _id: { $in: userIds },
+      tenantId: tenantObjectId,
+    })
+      .select("_id workSchedule")
+      .lean<{ _id: Types.ObjectId; workSchedule?: WorkScheduleLike }[]>();
+
+    const weeklyCapacityByUser = new Map<string, number[]>();
+    usersWithSchedule.forEach((user) => {
+      weeklyCapacityByUser.set(user._id.toString(), resolveWeeklyCapacity(user.workSchedule));
+    });
+
+    userIds.forEach((id) => {
+      const key = id.toString();
+      if (!weeklyCapacityByUser.has(key)) {
+        weeklyCapacityByUser.set(key, cloneDefaultWeeklyCapacity());
+      }
+    });
+
+    const holidays = await HolidayModel.find({
+      tenantId: tenantObjectId,
+      $or: [
+        { isRecurring: true },
+        { date: { $gte: yearStart, $lte: yearEnd } },
+      ],
+    }).lean();
+
+    const holidaySet = new Set<string>();
+    holidays.forEach((holiday) => {
+      const rawDate = holiday.date instanceof Date ? holiday.date : new Date(holiday.date);
+      if (holiday.isRecurring) {
+        const recurring = new Date(Date.UTC(year, rawDate.getUTCMonth(), rawDate.getUTCDate()));
+        holidaySet.add(formatIsoDate(recurring));
+      } else {
+        holidaySet.add(formatIsoDate(rawDate));
+      }
+    });
+
+    const computeDailyCapacity = (date: Date): number => {
+      const iso = formatIsoDate(date);
+      if (holidaySet.has(iso)) {
+        return 0;
+      }
+      const weekDay = date.getUTCDay();
+      let total = 0;
+      weeklyCapacityByUser.forEach((weekly) => {
+        total += weekly[weekDay] ?? 0;
+      });
+      return toNumber(total);
+    };
+
+    const dailyCapacityByIso = new Map<string, number>();
+    const capacityPerMonth = Array.from({ length: 12 }, () => 0);
+
+    for (let monthCursor = 0; monthCursor < 12; monthCursor += 1) {
+      const daysInCursorMonth = new Date(Date.UTC(year, monthCursor + 1, 0)).getUTCDate();
+      for (let day = 1; day <= daysInCursorMonth; day += 1) {
+        const cursorDate = new Date(Date.UTC(year, monthCursor, day));
+        const capacity = computeDailyCapacity(cursorDate);
+        capacityPerMonth[monthCursor] += capacity;
+        dailyCapacityByIso.set(formatIsoDate(cursorDate), capacity);
+      }
+    }
+
     const entries = await TimeEntryModel.find(entryQuery).lean();
     const entryIds = entries.map((entry) => entry._id);
     const allocations = entryIds.length
@@ -263,8 +357,8 @@ export const dashboardService = {
     const dailyCount = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
     const dailySeries: DailyPoint[] = Array.from({ length: dailyCount }, (_, dayIndex) => {
       const date = new Date(Date.UTC(year, monthIndex, dayIndex + 1));
-      const isWeekend = [0, 6].includes(date.getUTCDay());
-      const capacity = isWeekend ? 0 : DAILY_CAPACITY_HOURS;
+      const iso = formatIsoDate(date);
+      const capacity = dailyCapacityByIso.get(iso) ?? computeDailyCapacity(date);
       return {
         day: dayIndex + 1,
         capacit: capacity,
@@ -293,8 +387,7 @@ export const dashboardService = {
     });
 
     const monthlySeries: MonthlyPoint[] = monthlyTotals.map((totals, index) => {
-      const workingDays = getWorkingDaysInMonth(year, index);
-      const capacity = workingDays * DAILY_CAPACITY_HOURS;
+      const capacity = toNumber(capacityPerMonth[index] ?? 0);
       const hoursWorked = toNumber(totals.hoursWorked / MINUTES_IN_HOUR);
       const projectHours = toNumber(totals.projectMinutes / MINUTES_IN_HOUR);
       return {
@@ -355,7 +448,40 @@ export const dashboardService = {
       if (end < monthStart || start > monthEnd) {
         return total;
       }
-      return total + calculateOverlapHours(start, end, monthStart, monthEnd);
+
+      const normalizedStart = new Date(
+        Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+      );
+      const normalizedEnd = new Date(
+        Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
+      );
+
+      const startBoundaryBase = normalizedStart > monthStart ? normalizedStart : monthStart;
+      const endBoundaryBase = normalizedEnd < monthEnd ? normalizedEnd : monthEnd;
+
+      let cursor = new Date(
+        Date.UTC(
+          startBoundaryBase.getUTCFullYear(),
+          startBoundaryBase.getUTCMonth(),
+          startBoundaryBase.getUTCDate()
+        )
+      );
+      const boundary = new Date(
+        Date.UTC(
+          endBoundaryBase.getUTCFullYear(),
+          endBoundaryBase.getUTCMonth(),
+          endBoundaryBase.getUTCDate()
+        )
+      );
+
+      while (cursor <= boundary) {
+        total += computeDailyCapacity(cursor);
+        cursor = new Date(
+          Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 1)
+        );
+      }
+
+      return total;
     }, 0);
 
     const medicalMinutes = monthEntries.reduce((total, entry) => {
@@ -369,7 +495,9 @@ export const dashboardService = {
     const medicalHours = toNumber(medicalMinutes / MINUTES_IN_HOUR);
     const projectHours = toNumber(monthProjectMinutes / MINUTES_IN_HOUR);
     const hoursWorked = toNumber(monthWorkedMinutes / MINUTES_IN_HOUR);
-    const capacityHours = monthSummary?.capacit ?? getWorkingDaysInMonth(year, monthIndex) * DAILY_CAPACITY_HOURS;
+    const capacityHours = toNumber(
+      monthSummary?.capacit ?? capacityPerMonth[monthIndex] ?? 0
+    );
     const nonProjectHours = Math.max(hoursWorked - projectHours, 0);
     const vacationHoursRounded = toNumber(vacationHours);
     const internalProjectsHours = Math.max(

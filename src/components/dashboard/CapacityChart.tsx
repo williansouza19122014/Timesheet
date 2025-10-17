@@ -22,8 +22,7 @@ interface CapacityChartProps {
   selectedYear?: number;
   showCapacit?: boolean;
   showHoursWorked?: boolean;
-  showAverage?: boolean;
-  onToggleSeries: (series: "capacit" | "hoursWorked" | "average") => void;
+  onToggleSeries: (series: "capacit" | "hoursWorked") => void;
   className?: string;
 }
 
@@ -37,7 +36,6 @@ const CapacityChart = ({
   selectedYear,
   showCapacit = true,
   showHoursWorked = true,
-  showAverage = true,
   onToggleSeries,
   className,
 }: CapacityChartProps) => {
@@ -82,17 +80,13 @@ const CapacityChart = ({
     chartData.forEach((entry) => {
       values.push(entry.capacit);
       values.push(entry.hoursWorked);
-
-      if (showAverage && !selectedMonthLabel && "average" in entry) {
-        values.push(entry.average);
-      }
     });
 
     const maxValue = values.length ? Math.max(...values) : 10;
     const upperBound = Math.max(20, Math.ceil(maxValue / 10) * 10 + 4);
 
     return [0, upperBound];
-  }, [chartData, showAverage, selectedMonthLabel]);
+  }, [chartData]);
 
   const isDailyView = selectedMonthLabel !== undefined;
 
@@ -108,9 +102,7 @@ const CapacityChart = ({
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Capacidade x Horas Realizadas {formattedCurrentMonth && `(${formattedCurrentMonth})`}
           </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Ajuste as series abaixo para comparar desempenho ao longo do tempo.
-          </p>
+
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-slate-600 transition-colors dark:text-slate-300">
@@ -128,14 +120,6 @@ const CapacityChart = ({
               onCheckedChange={() => onToggleSeries("hoursWorked")}
             />
             Horas Realizadas
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600 transition-colors dark:text-slate-300">
-            <Checkbox
-              id="show-average"
-              checked={showAverage}
-              onCheckedChange={() => onToggleSeries("average")}
-            />
-            Media Anual
           </label>
         </div>
       </div>
@@ -184,17 +168,6 @@ const CapacityChart = ({
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 5 }}
-              />
-            )}
-            {showAverage && !isDailyView && (
-              <Line
-                type="monotone"
-                dataKey="average"
-                name="Media Anual"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
               />
             )}
           </LineChart>

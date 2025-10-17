@@ -43,7 +43,7 @@ const NotificationsList = ({ notifications, onMarkAsRead, className }: Notificat
     >
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Notificacoes</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Notifica\u00E7\u00F5es</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Clique para ver detalhes ou marcar como lida.
           </p>
@@ -56,7 +56,7 @@ const NotificationsList = ({ notifications, onMarkAsRead, className }: Notificat
       <div className="mt-4 space-y-3">
         {notifications.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-200/70 bg-slate-50/70 p-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
-            Nenhuma notificacao por aqui.
+            Nenhuma notificação por aqui.
           </div>
         )}
 

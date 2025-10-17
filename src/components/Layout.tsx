@@ -21,7 +21,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "@/context/theme-context";
-import { useAccessControl, ROLE_LABELS } from "@/context/access-control-context";
+import { useAccessControl } from "@/context/access-control-context";
 import type { FeatureKey } from "@/context/access-control-context";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
@@ -67,11 +67,11 @@ const Layout = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { theme, toggleTheme } = useTheme();
-  const { activeRole, canAccess } = useAccessControl();
+  const { activeRole, canAccess, getRoleLabel } = useAccessControl();
   const { user, logout } = useAuth();
   const { hasPermission, isMaster } = usePermission();
   const userName = user?.name ?? "Convidado";
-  const roleLabel = ROLE_LABELS[activeRole];
+  const roleLabel = getRoleLabel(activeRole);
   const avatarUrl = user?.photo ?? null;
   const userPosition = user?.position ?? null;
 

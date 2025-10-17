@@ -1,204 +1,178 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
-import ProjectAllocation from "./ProjectAllocation";
+import React, { useState } from "react";
 import type { Client } from "@/types/clients";
-import type {
-  ProjectAllocationFormData,
-  TimeEntryAllocationState,
-  TimeEntryMap,
-  TimeEntryState,
-} from "@/hooks/useTimeEntries";
+import type { Project } from "@/types/projects";
+import type { ProjectAllocationFormData } from "@/hooks/useTimeEntries";
 
 interface TimeEntryTableProps {
-  days: Date[];
-  entries: TimeEntryMap;
-  expandedDay: number | null;
-  onToggleExpand: (index: number) => void;
-  diasSemana: string[];
-  formatDate: (date: Date) => string;
   clients: Client[];
-  onAllocateProject: (date: Date, allocation: ProjectAllocationFormData) => Promise<void> | void;
+  date: Date;
+  totalHours: string;
+  allocatedHours: string;
+  allocations: {
+    id: string;
+    projectId: string;
+    projectName: string;
+    hoursLabel: string;
+  }[];
+  onAddProject: (allocation: ProjectAllocationFormData) => void | Promise<void>;
 }
 
-const formatDecimalHours = (value: number) => {
-  if (!value || Number.isNaN(value)) {
-    return "00:00";
-  }
-  const totalMinutes = Math.round(value * 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = Math.max(totalMinutes - hours * 60, 0);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
-};
+interface FormData {
+  projectId: string;
+  hours: string;
+}
 
-const buildAllocationSummary = (allocations: TimeEntryAllocationState[]) =>
-  allocations.map((allocation) => ({
-    id: allocation.id,
-    projectId: allocation.projectId,
-    projectName: allocation.projectName,
-    hoursLabel: formatDecimalHours(allocation.hours),
-  }));
-
-const EMPTY_DAY_ENTRY: TimeEntryState = {
-  entrada1: "",
-  saida1: "",
-  entrada2: "",
-  saida2: "",
-  entrada3: "",
-  saida3: "",
-  totalHoras: "00:00",
-  allocations: [],
-};
-
-const getRowClassName = (date: Date, entry: TimeEntryState) => {
-  const baseClasses = "transition-colors hover:bg-gray-50/50 dark:hover:bg-slate-800/60";
-  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-  const totalAllocationHours =
-    entry?.allocations?.reduce((acc, allocation) => acc + allocation.hours, 0) ?? 0;
-  const [hours, minutes] = (entry?.totalHoras || "00:00").split(":").map(Number);
-  const totalWorkMinutes = hours * 60 + minutes;
-  const totalProjectMinutes = totalAllocationHours * 60;
-
-  if (isWeekend) return `${baseClasses} bg-gray-50 dark:bg-slate-800/60`;
-  if (totalWorkMinutes === 0) return baseClasses;
-  if (totalWorkMinutes === totalProjectMinutes) {
-    return `${baseClasses} bg-green-50 dark:bg-emerald-500/10`;
-  }
-  return `${baseClasses} bg-red-50 dark:bg-rose-500/10`;
-};
-
-const TimeEntryTable = ({
-  days,
-  entries,
-  expandedDay,
-  onToggleExpand,
-  diasSemana,
-  formatDate,
+const TimeEntryTable: React.FC<TimeEntryTableProps> = ({
   clients,
-  onAllocateProject,
-}: TimeEntryTableProps) => {
+  date,
+  totalHours,
+  allocatedHours,
+  allocations,
+  onAddProject,
+}) => {
+  const [formData, setFormData] = useState<FormData>({
+    projectId: "",
+    hours: "",
+  });
+  const [error, setError] = useState<string>("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const hours = parseFloat(formData.hours);
+
+    // Validações
+    if (!formData.projectId) {
+      setError("Selecione um cliente");
+      return;
+    }
+
+    if (isNaN(hours) || hours <= 0 || hours > 24) {
+      setError("Horas inválidas");
+      return;
+    }
+
+    const selectedClient = clients.find((c) => c.id === formData.projectId);
+
+    try {
+      await onAddProject({
+        projectId: formData.projectId,
+        hours: hours,
+        projectName: selectedClient?.name ?? "Projeto sem nome",
+      });
+
+      // Limpa o formulário após sucesso
+      setFormData({ projectId: "", hours: "" });
+    } catch (error) {
+      setError("Erro ao adicionar alocação");
+    }
+  };
+
   return (
-    <div className="overflow-hidden rounded-2xl border bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="overflow-x-auto">
-        <table className="w-full text-slate-700 dark:text-slate-200">
-          <thead>
-            <tr className="border-b bg-muted/50 dark:border-slate-700 dark:bg-slate-800/60">
-              <th className="py-2 px-4 text-center">Data</th>
-              <th className="py-2 px-4 text-center">Dia</th>
-              <th className="py-2 px-4 text-center">Entrada 1</th>
-              <th className="py-2 px-4 text-center">Saída 1</th>
-              <th className="py-2 px-4 text-center">Entrada 2</th>
-              <th className="py-2 px-4 text-center">Saída 2</th>
-              <th className="py-2 px-4 text-center">Entrada 3</th>
-              <th className="py-2 px-4 text-center">Saída 3</th>
-              <th className="py-2 px-4 text-center">Total</th>
-              <th className="w-10" />
-            </tr>
-          </thead>
-          <tbody className="text-sm">
-            {days.map((date, index) => {
-              const dateStr = date.toISOString().split("T")[0];
-              const entry = entries[dateStr] ?? EMPTY_DAY_ENTRY;
-              const allocationSummary = buildAllocationSummary(entry.allocations);
-              const totalAllocated = entry.allocations.reduce(
-                (acc, allocation) => acc + allocation.hours,
-                0
-              );
-              const allocatedHoursLabel = formatDecimalHours(totalAllocated);
+    <div className="space-y-4">
+      <div className="flex justify-between items-center border-b pb-2">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Alocação de Horas — {date.toLocaleDateString("pt-BR")}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Total trabalhado: {totalHours} | Alocado: {allocatedHours}
+          </p>
+        </div>
+      </div>
 
-              const rows: JSX.Element[] = [
-                <tr key={`${dateStr}-main`} className={getRowClassName(date, entry)}>
-                  <td className="py-1.5 px-4 text-center">{formatDate(date)}</td>
-                  <td className="py-1.5 px-4 text-center">{diasSemana[date.getDay()]}</td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.entrada1}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.saida1}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.entrada2}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.saida2}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.entrada3}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <input
-                      type="time"
-                      value={entry.saida3}
-                      readOnly
-                      className="mx-auto block rounded border bg-transparent p-1 text-center dark:border-slate-700 dark:text-slate-100"
-                    />
-                  </td>
-                  <td className="py-1.5 px-4 text-center font-medium text-slate-900 dark:text-slate-100">
-                    {entry.totalHoras}
-                  </td>
-                  <td className="py-1.5 px-4 text-center">
-                    <button
-                      type="button"
-                      onClick={() => onToggleExpand(index)}
-                      className="rounded p-1 transition-colors hover:bg-muted"
-                    >
-                      {expandedDay === index ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </button>
-                  </td>
-                </tr>,
-              ];
+      {/* Lista de alocações */}
+      {allocations.length > 0 ? (
+        <ul className="text-sm space-y-1">
+          {allocations.map((allocation) => (
+            <li
+              key={allocation.id}
+              className="flex justify-between border-b pb-1 dark:border-slate-700"
+            >
+              <span>
+                {allocation.projectName} — {allocation.hoursLabel}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-slate-500 italic">
+          Nenhuma alocação cadastrada para este dia.
+        </p>
+      )}
 
-              if (expandedDay === index) {
-                rows.push(
-                  <tr key={`${dateStr}-details`}>
-                    <td colSpan={10} className="py-4 px-6">
-                      <ProjectAllocation
-                        clients={clients}
-                        date={date}
-                        onAddProject={(allocation) => onAllocateProject(date, allocation)}
-                        totalHours={entry.totalHoras || "00:00"}
-                        allocatedHours={allocatedHoursLabel}
-                        allocations={allocationSummary}
-                      />
-                    </td>
-                  </tr>
-                );
+      {/* Formulário de nova alocação */}
+      <div className="mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex gap-2">
+            <select
+              value={formData.projectId}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, projectId: e.target.value }))
               }
+              className="flex-1 rounded border p-2 dark:bg-slate-800 dark:border-slate-700"
+            >
+              <option value="">Selecione um cliente</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
 
-              return rows;
-            })}
-          </tbody>
-        </table>
+            <input
+              type="number"
+              value={formData.hours}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, hours: e.target.value }))
+              }
+              step="0.25"
+              min="0"
+              max="24"
+              placeholder="Horas"
+              className="w-24 rounded border p-2 text-center dark:bg-slate-800 dark:border-slate-700"
+            />
+
+            <button
+              type="submit"
+              className="rounded bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+              disabled={!formData.projectId || !formData.hours}
+            >
+              Adicionar
+            </button>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-500 mt-2">
+              {error}
+            </p>
+          )}
+        </form>
       </div>
     </div>
   );
 };
 
 export default TimeEntryTable;
+
+export interface Project {
+  id: string;
+  name: string;
+  clientId: string;
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'inactive' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectAllocationFormData {
+  projectId: string;
+  hours: number;
+  projectName: string;
+}
+
+export const useTimeEntries = () => {
+  // Implementação do hook
+};

@@ -25,7 +25,6 @@ const Index = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [showCapacit, setShowCapacit] = useState(true);
   const [showHoursWorked, setShowHoursWorked] = useState(true);
-  const [showAverage, setShowAverage] = useState(true);
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notificationsState, setNotificationsState] = useState<Notification[]>([]);
@@ -126,19 +125,14 @@ const Index = () => {
     ? format(new Date(selectedYear, selectedMonth, 1), "MMMM", { locale: ptBR })
     : null;
 
-  const handleSeriesToggle = (series: "capacit" | "hoursWorked" | "average") => {
-    switch (series) {
-      case "capacit":
-        setShowCapacit((prev) => !prev);
-        break;
-      case "hoursWorked":
-        setShowHoursWorked((prev) => !prev);
-        break;
-      case "average":
-        setShowAverage((prev) => !prev);
-        break;
-      default:
-        break;
+  const handleSeriesToggle = (series: "capacit" | "hoursWorked") => {
+    if (series === "capacit") {
+      setShowCapacit((prev) => !prev);
+      return;
+    }
+
+    if (series === "hoursWorked") {
+      setShowHoursWorked((prev) => !prev);
     }
   };
 
@@ -175,7 +169,6 @@ const Index = () => {
             selectedYear={selectedYear}
             showCapacit={showCapacit}
             showHoursWorked={showHoursWorked}
-            showAverage={showAverage}
             onToggleSeries={handleSeriesToggle}
           />
 

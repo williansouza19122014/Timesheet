@@ -10,6 +10,7 @@ import {
   type PersonalInfo,
   type BankInfo,
   type WorkSchedule,
+  type WorkScheduleDay,
   type EmergencyContact,
   type UserDocumentInfo,
   type BenefitInfo,
@@ -68,9 +69,14 @@ type BankInfoInput = {
   agency?: string | null;
 } | null;
 
+type WorkScheduleDayInput = {
+  dayOfWeek?: number | null;
+  enabled?: boolean | null;
+  hours?: number | null;
+} | null;
+
 type WorkScheduleInput = {
-  startTime?: string | null;
-  endTime?: string | null;
+  days?: WorkScheduleDayInput[] | null;
 } | null;
 
 
@@ -289,19 +295,177 @@ const parseDateInput = (
   if (value === null || value === "") {
     return options.allowNull ? null : undefined;
   }
-  const parsed = new Date(value);
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return options.allowNull ? null : undefined;
+  }
+
+  const brazilianFormat = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = brazilianFormat.exec(trimmed);
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+    if (
+      Number.isInteger(day) &&
+      Number.isInteger(month) &&
+      Number.isInteger(year) &&
+      day >= 1 &&
+      day <= 31 &&
+      month >= 1 &&
+      month <= 12
+    ) {
+      const parsedBrazilian = new Date(Date.UTC(year, month - 1, day));
+      if (!Number.isNaN(parsedBrazilian.getTime())) {
+        return parsedBrazilian;
+      }
+    }
+    throw new HttpException(400, `Invalid ${field}`);
+  }
+
+  const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
     throw new HttpException(400, `Invalid ${field}`);
   }
   return parsed;
 };
 
+const formatDateToBR = (value?: Date | null): string | undefined => {
+  if (!value) return undefined;
+  const source = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(source.getTime())) {
+    return undefined;
+  }
+  const day = String(source.getUTCDate()).padStart(2, "0");
+  const month = String(source.getUTCMonth() + 1).padStart(2, "0");
+  const year = source.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const DEFAULT_WORK_SCHEDULE_DAYS: ReadonlyArray<WorkScheduleDay> = [
+  { dayOfWeek: 0, enabled: false, hours: 0 },
+  { dayOfWeek: 1, enabled: true, hours: 8 },
+  { dayOfWeek: 2, enabled: true, hours: 8 },
+  { dayOfWeek: 3, enabled: true, hours: 8 },
+  { dayOfWeek: 4, enabled: true, hours: 8 },
+  { dayOfWeek: 5, enabled: true, hours: 8 },
+  { dayOfWeek: 6, enabled: false, hours: 0 },
+];
+
+const cloneDefaultWorkScheduleDays = (): WorkScheduleDay[] =>
+  DEFAULT_WORK_SCHEDULE_DAYS.map((day) => ({ ...day }));
+
+const sanitizeWorkScheduleDay = (input: WorkScheduleDayInput | WorkScheduleDay | null | undefined): WorkScheduleDay | null => {
+  if (!input) return null;
+
+  const rawDay =
+    typeof input.dayOfWeek === "number"
+      ? input.dayOfWeek
+      : Number(
+          typeof (input as { dayOfWeek?: unknown }).dayOfWeek === "string"
+            ? (input as { dayOfWeek?: string }).dayOfWeek
+            : (input as { dayOfWeek?: number }).dayOfWeek
+        );
+
+  if (!Number.isInteger(rawDay) || rawDay < 0 || rawDay > 6) {
+    return null;
+  }
+
+  const enabled =
+    typeof input.enabled === "boolean"
+      ? input.enabled
+      : Boolean((input as { enabled?: boolean | null }).enabled ?? true);
+
+  const rawHours =
+    typeof input.hours === "number"
+      ? input.hours
+      : Number((input as { hours?: string | number | null }).hours ?? (enabled ? 8 : 0));
+
+  const sanitizedHours = enabled ? Math.max(0, Math.min(24, Math.round(rawHours * 100) / 100)) : 0;
+
+  return {
+    dayOfWeek: rawDay,
+    enabled,
+    hours: sanitizedHours,
+  };
+};
+
+const resolveWorkScheduleDays = (
+  days?: Array<WorkScheduleDayInput | WorkScheduleDay> | null
+): WorkScheduleDay[] => {
+  const resolved = new Map<number, WorkScheduleDay>();
+  cloneDefaultWorkScheduleDays().forEach((day) => resolved.set(day.dayOfWeek, day));
+
+  if (Array.isArray(days)) {
+    days.forEach((item) => {
+      const normalized = sanitizeWorkScheduleDay(item);
+      if (normalized) {
+        resolved.set(normalized.dayOfWeek, normalized);
+      }
+    });
+  }
+
+  return Array.from(resolved.values()).sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+};
+
 const normalizeWorkSchedule = (input?: WorkScheduleInput): WorkSchedule | undefined => {
-  if (!input) return undefined;
-  const startTime = sanitizeString(input.startTime);
-  const endTime = sanitizeString(input.endTime);
-  if (!startTime && !endTime) return undefined;
-  return { startTime, endTime };
+  if (input === undefined || input === null) return undefined;
+  const days = resolveWorkScheduleDays(input.days ?? undefined);
+  return { days };
+};
+
+const deriveLegacyWorkSchedule = (value: unknown): WorkSchedule => {
+  if (!value || typeof value !== "object") {
+    return { days: cloneDefaultWorkScheduleDays() };
+  }
+
+  const maybeSchedule = value as { days?: Array<WorkScheduleDayInput | WorkScheduleDay> };
+  if (Array.isArray(maybeSchedule.days)) {
+    return { days: resolveWorkScheduleDays(maybeSchedule.days) };
+  }
+
+  const startTime =
+    typeof (value as { startTime?: unknown }).startTime === "string"
+      ? ((value as { startTime?: string }).startTime as string)
+      : undefined;
+  const endTime =
+    typeof (value as { endTime?: unknown }).endTime === "string"
+      ? ((value as { endTime?: string }).endTime as string)
+      : undefined;
+
+  const computeHoursFromRange = (start?: string, end?: string): number | null => {
+    if (!start || !end) return null;
+    const [startHour, startMinute] = start.split(":").map(Number);
+    const [endHour, endMinute] = end.split(":").map(Number);
+    if (
+      [startHour, startMinute, endHour, endMinute].some(
+        (value) => Number.isNaN(value) || value < 0
+      )
+    ) {
+      return null;
+    }
+    const diffMinutes = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    if (diffMinutes <= 0) return null;
+    return Math.round((diffMinutes / 60) * 100) / 100;
+  };
+
+  const legacyHours = computeHoursFromRange(startTime, endTime) ?? 8;
+  const days = cloneDefaultWorkScheduleDays().map((day) => ({
+    ...day,
+    hours: day.enabled ? legacyHours : 0,
+  }));
+  return { days };
+};
+
+const ensureWorkSchedule = (value?: WorkSchedule | null | undefined): WorkSchedule => {
+  if (!value) {
+    return { days: cloneDefaultWorkScheduleDays() };
+  }
+  if (Array.isArray((value as WorkSchedule).days)) {
+    return { days: resolveWorkScheduleDays((value as WorkSchedule).days) };
+  }
+  return deriveLegacyWorkSchedule(value);
 };
 
 const normalizeAddress = (input?: AddressInput): Address | undefined => {
@@ -582,12 +746,7 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
     managerDetails?.id ??
     (user.manager instanceof Types.ObjectId ? user.manager.toString() : undefined);
 
-  const workSchedule = user.workSchedule
-    ? {
-        startTime: user.workSchedule.startTime ?? undefined,
-        endTime: user.workSchedule.endTime ?? undefined,
-      }
-    : undefined;
+  const workSchedule = ensureWorkSchedule(user.workSchedule);
 
   const address = user.address
     ? {
@@ -630,8 +789,8 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
   const documents = (user.documents ?? []).map((document) => ({
     type: document.type ?? undefined,
     number: document.number ?? undefined,
-    issueDate: document.issueDate?.toISOString(),
-    expiryDate: document.expiryDate?.toISOString(),
+    issueDate: formatDateToBR(document.issueDate ?? undefined),
+    expiryDate: formatDateToBR(document.expiryDate ?? undefined),
     issuer: document.issuer ?? undefined,
     fileUrl: document.fileUrl ?? undefined,
     notes: document.notes ?? undefined,
@@ -641,8 +800,8 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
     name: benefit.name ?? undefined,
     provider: benefit.provider ?? undefined,
     status: benefit.status ?? undefined,
-    joinDate: benefit.joinDate?.toISOString(),
-    endDate: benefit.endDate?.toISOString(),
+    joinDate: formatDateToBR(benefit.joinDate ?? undefined),
+    endDate: formatDateToBR(benefit.endDate ?? undefined),
     contribution: benefit.contribution ?? undefined,
     notes: benefit.notes ?? undefined,
   }));
@@ -650,7 +809,7 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
   const dependents = (user.dependents ?? []).map((dependent) => ({
     name: dependent.name ?? undefined,
     relationship: dependent.relationship ?? undefined,
-    birthDate: dependent.birthDate?.toISOString(),
+    birthDate: formatDateToBR(dependent.birthDate ?? undefined),
     document: dependent.document ?? undefined,
     phone: dependent.phone ?? undefined,
     email: dependent.email ?? undefined,
@@ -660,8 +819,8 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
   const employmentHistory = (user.employmentHistory ?? []).map((history) => ({
     company: history.company ?? undefined,
     role: history.role ?? undefined,
-    startDate: history.startDate?.toISOString(),
-    endDate: history.endDate?.toISOString(),
+    startDate: formatDateToBR(history.startDate ?? undefined),
+    endDate: formatDateToBR(history.endDate ?? undefined),
     responsibilities: history.responsibilities ?? undefined,
     achievements: history.achievements ?? undefined,
     technologies: history.technologies ?? undefined,
@@ -674,8 +833,8 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
     category: skill.category ?? undefined,
     certified: skill.certified ?? undefined,
     certificationAuthority: skill.certificationAuthority ?? undefined,
-    issuedAt: skill.issuedAt?.toISOString(),
-    expiresAt: skill.expiresAt?.toISOString(),
+    issuedAt: formatDateToBR(skill.issuedAt ?? undefined),
+    expiresAt: formatDateToBR(skill.expiresAt ?? undefined),
     notes: skill.notes ?? undefined,
   }));
 
@@ -686,10 +845,10 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
     role: user.role,
     status: user.status,
     photo: user.photo ?? undefined,
-    hireDate: user.hireDate?.toISOString(),
-    terminationDate: user.terminationDate?.toISOString(),
+    hireDate: formatDateToBR(user.hireDate),
+    terminationDate: formatDateToBR(user.terminationDate),
     cpf: user.cpf ?? undefined,
-    birthDate: user.birthDate?.toISOString(),
+    birthDate: formatDateToBR(user.birthDate),
     phone: user.phone ?? undefined,
     position: user.position ?? undefined,
     department: user.department ?? undefined,
@@ -710,8 +869,8 @@ const formatUser = (user: UserDocumentWithRelations): UserResponse => {
     skills,
     managerId,
     manager: managerDetails,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString(),
+    createdAt: formatDateToBR(user.createdAt),
+    updatedAt: formatDateToBR(user.updatedAt),
   };
 };
 
@@ -825,7 +984,7 @@ export const userService = {
     );
     const manager = await normalizeManagerId(tenantObjectId, input.managerId);
 
-    const workSchedule = normalizeWorkSchedule(input.workSchedule);
+    const workSchedule = normalizeWorkSchedule(input.workSchedule) ?? ensureWorkSchedule(undefined);
     const address = normalizeAddress(input.address);
     const personalInfo = normalizePersonalInfo(input.personalInfo);
     const bankInfo = normalizeBankInfo(input.bankInfo);
@@ -860,7 +1019,7 @@ export const userService = {
       ...(position ? { position } : {}),
       ...(department ? { department } : {}),
       ...(contractType ? { contractType } : {}),
-      ...(workSchedule ? { workSchedule } : {}),
+      workSchedule,
       ...(address ? { address } : {}),
       ...(manager ? { manager } : {}),
       ...(additionalNotes ? { additionalNotes } : {}),
@@ -969,9 +1128,9 @@ export const userService = {
       user.contractType = sanitizeString(input.contractType);
     }
 
-    const workSchedule = normalizeWorkSchedule(input.workSchedule);
     if (input.workSchedule !== undefined) {
-      user.workSchedule = workSchedule;
+      user.workSchedule =
+        normalizeWorkSchedule(input.workSchedule) ?? ensureWorkSchedule(undefined);
     }
 
     const address = normalizeAddress(input.address);

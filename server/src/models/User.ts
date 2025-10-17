@@ -12,9 +12,14 @@ export enum UserStatus {
   INACTIVE = "INACTIVE",
 }
 
+export interface WorkScheduleDay {
+  dayOfWeek: number;
+  enabled: boolean;
+  hours: number;
+}
+
 export interface WorkSchedule {
-  startTime?: string;
-  endTime?: string;
+  days: WorkScheduleDay[];
 }
 
 export interface Address {
@@ -247,10 +252,18 @@ const addressSchema = new Schema<Address>(
   { _id: false }
 );
 
+const workScheduleDaySchema = new Schema<WorkScheduleDay>(
+  {
+    dayOfWeek: { type: Number, min: 0, max: 6, required: true },
+    enabled: { type: Boolean, default: true },
+    hours: { type: Number, min: 0, max: 24, default: 8 },
+  },
+  { _id: false }
+);
+
 const workScheduleSchema = new Schema<WorkSchedule>(
   {
-    startTime: { type: String },
-    endTime: { type: String },
+    days: { type: [workScheduleDaySchema], default: undefined },
   },
   { _id: false }
 );

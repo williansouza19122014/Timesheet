@@ -10,6 +10,7 @@ import { dashboardRouter } from "./dashboardRoutes";
 import { userRouter } from "./userRoutes";
 import { tenantRouter } from "./tenantRoutes";
 import { roleRouter } from "./roleRoutes";
+import { holidayRouter } from "./holidayRoutes";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/reports", reportRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/users", userRouter);
 router.use("/roles", roleRouter);
+router.use("/holidays", holidayRouter);
 
 export { router };

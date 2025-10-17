@@ -33,7 +33,7 @@ const HoursSummary = ({ currentMonthData, hoursBreakdown, className }: HoursSumm
       value: hoursBreakdown.internalProjects,
     },
     {
-      label: "Ferias",
+      label: "Férias",
       value: hoursBreakdown.vacation,
     },
     {
@@ -73,7 +73,7 @@ const HoursSummary = ({ currentMonthData, hoursBreakdown, className }: HoursSumm
       {nonProjectHours > 0 && (
         <div className="mt-4 rounded-xl border border-dashed border-slate-200/70 bg-white/70 p-4 dark:border-slate-700 dark:bg-slate-900/40">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Detalhamento de horas nao-projeto
+            Detalhamento de horas sem projeto
           </h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {breakdownItems.map((item) => (
@@ -83,7 +83,7 @@ const HoursSummary = ({ currentMonthData, hoursBreakdown, className }: HoursSumm
               </div>
             ))}
             <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-sm dark:border-slate-700">
-              <span className="font-semibold text-slate-600 dark:text-slate-300">Total nao-projeto</span>
+              <span className="font-semibold text-slate-600 dark:text-slate-300">Total de horas sem projeto apontado</span>
               <span className="font-bold text-accent">{nonProjectHours}h</span>
             </div>
           </div>

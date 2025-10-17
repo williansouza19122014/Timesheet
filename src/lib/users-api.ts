@@ -13,9 +13,14 @@ export interface UserAddress {
   zipCode?: string;
 }
 
+export interface WorkScheduleDayInfo {
+  dayOfWeek: number;
+  enabled?: boolean;
+  hours?: number;
+}
+
 export interface WorkScheduleInfo {
-  startTime?: string;
-  endTime?: string;
+  days: WorkScheduleDayInfo[];
 }
 
 export interface UserProfile {
